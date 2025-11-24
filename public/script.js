@@ -9,7 +9,50 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCategoryFilters();
     setupDarkMode();
     setupEcommerceModal();
+    setupScrollAnimations();
 });
+
+// Setup Scroll Animations (Lamp & Fade-in)
+function setupScrollAnimations() {
+    // Lamp Animation
+    const lampContainer = document.querySelector('.scroll-lamp-container');
+    const lampBulb = document.querySelector('.lamp-bulb');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+
+        // Toggle lamp on/off based on scroll position
+        if (scrollY > 100) {
+            document.body.classList.add('lamp-on');
+        } else {
+            document.body.classList.remove('lamp-on');
+        }
+
+        // Parallax/Swing effect for lamp
+        if (lampContainer) {
+            lampContainer.style.transform = `translateY(${scrollY * 0.1}px) rotate(${Math.sin(scrollY * 0.005) * 5}deg)`;
+        }
+    });
+
+    // Fade-in on Scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px"
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target); // Only animate once
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+}
 
 // Load all products
 async function loadProducts() {
@@ -31,7 +74,7 @@ function setupCategoryFilters() {
             // Update active state
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             // Update current category
             currentCategory = btn.dataset.category;
             displayProducts();
@@ -42,12 +85,12 @@ function setupCategoryFilters() {
 // Display products based on current filter
 function displayProducts() {
     const container = document.getElementById('products-container');
-    
+
     if (!container) return;
-    
+
     // Get products to display
     let productsToShow = [];
-    
+
     if (currentCategory === 'all') {
         // Show all products from all categories
         Object.values(allProducts.categories || {}).forEach(categoryProducts => {
@@ -56,7 +99,7 @@ function displayProducts() {
     } else {
         productsToShow = allProducts.categories[currentCategory] || [];
     }
-    
+
     if (productsToShow.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="grid-column: 1 / -1;">
@@ -66,10 +109,10 @@ function displayProducts() {
         `;
         return;
     }
-    
+
     // Render products
     container.innerHTML = productsToShow.map(product => createProductCard(product)).join('');
-    
+
     // Attach event listeners to Buy Now buttons
     attachBuyNowListeners();
 }
@@ -77,10 +120,10 @@ function displayProducts() {
 // Create product card HTML
 function createProductCard(product) {
     // Handle media (images/videos) - support both old 'image' and new 'media' array
-    const media = product.media && product.media.length > 0 
-        ? product.media 
+    const media = product.media && product.media.length > 0
+        ? product.media
         : (product.image ? [product.image] : []);
-    
+
     let mediaHtml = '';
     if (media.length === 0) {
         mediaHtml = `<div class="product-image-placeholder">🏠</div>`;
@@ -98,16 +141,16 @@ function createProductCard(product) {
             <div class="product-carousel" data-product-id="${product.id}">
                 <div class="carousel-container">
                     ${media.map((url, index) => {
-                        const isVideo = url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
-                        return `
+            const isVideo = url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
+            return `
                             <div class="carousel-slide ${index === 0 ? 'active' : ''}">
-                                ${isVideo 
-                                    ? `<video src="${url}" autoplay muted loop playsinline></video>`
-                                    : `<img src="${url}" alt="${product.name}">`
-                                }
+                                ${isVideo
+                    ? `<video src="${url}" autoplay muted loop playsinline></video>`
+                    : `<img src="${url}" alt="${product.name}">`
+                }
                             </div>
                         `;
-                    }).join('')}
+        }).join('')}
                 </div>
                 ${showNav ? `
                     <button class="carousel-nav carousel-prev" onclick="changeCarouselSlide('${product.id}', -1)">‹</button>
@@ -121,7 +164,7 @@ function createProductCard(product) {
             </div>
         `;
     }
-    
+
     return `
         <div class="product-card" data-category="${product.category || 'all'}">
             <div class="product-image">
@@ -163,12 +206,12 @@ function attachBuyNowListeners() {
             const flipkartLink = btn.dataset.flipkartLink;
             const meeshoLink = btn.dataset.meeshoLink;
             const productName = btn.dataset.productName;
-            
+
             // Show ecommerce platform selection modal - only show platforms with links
             showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName);
         });
     });
-    
+
     // Help buttons
     const helpButtons = document.querySelectorAll('.help-btn');
     helpButtons.forEach(btn => {
@@ -176,7 +219,7 @@ function attachBuyNowListeners() {
             const productId = btn.dataset.productId;
             const productName = btn.dataset.productName;
             const productSku = btn.dataset.productSku;
-            
+
             // Show help form modal
             showHelpFormModal(productId, productName, productSku);
         });
@@ -184,35 +227,35 @@ function attachBuyNowListeners() {
 }
 
 // Carousel functions
-window.changeCarouselSlide = function(productId, direction) {
+window.changeCarouselSlide = function (productId, direction) {
     const carousel = document.querySelector(`.product-carousel[data-product-id="${productId}"]`);
     if (!carousel) return;
-    
+
     const slides = carousel.querySelectorAll('.carousel-slide');
     const indicators = carousel.querySelectorAll('.carousel-indicator');
     let currentIndex = Array.from(slides).findIndex(slide => slide.classList.contains('active'));
-    
+
     slides[currentIndex].classList.remove('active');
     indicators[currentIndex].classList.remove('active');
-    
+
     currentIndex += direction;
     if (currentIndex < 0) currentIndex = slides.length - 1;
     if (currentIndex >= slides.length) currentIndex = 0;
-    
+
     slides[currentIndex].classList.add('active');
     indicators[currentIndex].classList.add('active');
 };
 
-window.goToCarouselSlide = function(productId, index) {
+window.goToCarouselSlide = function (productId, index) {
     const carousel = document.querySelector(`.product-carousel[data-product-id="${productId}"]`);
     if (!carousel) return;
-    
+
     const slides = carousel.querySelectorAll('.carousel-slide');
     const indicators = carousel.querySelectorAll('.carousel-indicator');
-    
+
     slides.forEach(slide => slide.classList.remove('active'));
     indicators.forEach(indicator => indicator.classList.remove('active'));
-    
+
     slides[index].classList.add('active');
     indicators[index].classList.add('active');
 };
@@ -222,14 +265,14 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
     const modal = document.getElementById('ecommerce-modal');
     const modalTitle = document.getElementById('ecommerce-modal-title');
     const platformsContainer = document.getElementById('ecommerce-platforms');
-    
+
     modalTitle.textContent = `Buy ${productName}`;
-    
+
     // Clear previous platforms
     platformsContainer.innerHTML = '';
-    
+
     let hasLinks = false;
-    
+
     // Add Amazon if available
     if (amazonLink) {
         hasLinks = true;
@@ -243,7 +286,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         `;
         platformsContainer.appendChild(amazonBtn);
     }
-    
+
     // Add Flipkart if available
     if (flipkartLink) {
         hasLinks = true;
@@ -257,7 +300,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         `;
         platformsContainer.appendChild(flipkartBtn);
     }
-    
+
     // Add Meesho if available
     if (meeshoLink) {
         hasLinks = true;
@@ -271,12 +314,12 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         `;
         platformsContainer.appendChild(meeshoBtn);
     }
-    
+
     // If no links available
     if (!hasLinks) {
         platformsContainer.innerHTML = '<p style="color: var(--text-secondary);">No purchase links available. Please contact us for orders.</p>';
     }
-    
+
     modal.classList.add('show');
 }
 
@@ -284,13 +327,13 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
 function setupEcommerceModal() {
     const modal = document.getElementById('ecommerce-modal');
     const closeBtn = document.getElementById('close-ecommerce-modal');
-    
+
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('show');
         });
     }
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target.id === 'ecommerce-modal') {
@@ -302,14 +345,14 @@ function setupEcommerceModal() {
 // Dark mode functionality
 function setupDarkMode() {
     const themeToggle = document.getElementById('theme-toggle-checkbox');
-    
+
     // Load saved theme preference
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
         document.body.classList.add('dark-mode');
         if (themeToggle) themeToggle.checked = true;
     }
-    
+
     // Toggle theme
     if (themeToggle) {
         themeToggle.addEventListener('change', (e) => {
@@ -373,32 +416,32 @@ function showHelpFormModal(productId, productName, productSku) {
             </div>
         `;
         document.body.appendChild(helpModal);
-        
+
         // Add event listeners
         helpModal.querySelector('.close-help-modal').addEventListener('click', () => {
             helpModal.style.display = 'none';
         });
-        
+
         helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) {
                 helpModal.style.display = 'none';
             }
         });
-        
+
         // Form submission
         helpModal.querySelector('#help-form').addEventListener('submit', submitHelpForm);
     }
-    
+
     // Populate form with product info
     document.getElementById('help-product-id').value = productId;
     document.getElementById('help-product-sku-hidden').value = productSku; // Hidden SKU field
     document.getElementById('help-product-name').textContent = productName;
-    
+
     // Reset form and message
     document.getElementById('help-form').reset();
     document.getElementById('help-form-message').textContent = '';
     document.getElementById('help-form-message').className = 'help-form-message';
-    
+
     // Show modal
     helpModal.style.display = 'flex';
 }
@@ -406,11 +449,11 @@ function showHelpFormModal(productId, productName, productSku) {
 // Submit help form
 async function submitHelpForm(e) {
     e.preventDefault();
-    
+
     const form = e.target;
     const messageDiv = document.getElementById('help-form-message');
     const submitBtn = form.querySelector('.submit-help-btn');
-    
+
     // Get form data
     const formData = new FormData(form);
     const data = {
@@ -422,13 +465,13 @@ async function submitHelpForm(e) {
         query: formData.get('query'),
         timestamp: new Date().toISOString()
     };
-    
+
     // Disable submit button and show loading
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
     messageDiv.textContent = '';
     messageDiv.className = 'help-form-message';
-    
+
     try {
         // Send data to server
         const response = await fetch('/api/help-request', {
@@ -438,17 +481,17 @@ async function submitHelpForm(e) {
             },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             // Show success message
             messageDiv.textContent = result.message;
             messageDiv.className = 'help-form-message success';
-            
+
             // Reset form after success
             form.reset();
-            
+
             // Close modal after delay
             setTimeout(() => {
                 document.getElementById('help-modal').style.display = 'none';
