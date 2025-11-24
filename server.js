@@ -33,7 +33,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
   fileFilter: (req, file, cb) => {
@@ -50,7 +50,7 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Data files
@@ -80,13 +80,13 @@ async function getGoogleSheetsClient() {
 async function appendToGoogleSheet(data) {
   try {
     const sheets = await getGoogleSheetsClient();
-    
+
     if (!sheets) {
       // If authentication failed, save to local file as fallback
       console.log('Google Sheets authentication failed, saving to local file');
       return await saveToLocalFile(data);
     }
-    
+
     // Format data for Google Sheets (remove product ID)
     const values = [
       [
@@ -99,7 +99,7 @@ async function appendToGoogleSheet(data) {
         data.timestamp || new Date().toISOString()
       ]
     ];
-    
+
     // Append to Google Sheet
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: GOOGLE_SHEET_ID,
@@ -109,9 +109,9 @@ async function appendToGoogleSheet(data) {
         values: values
       }
     });
-    
+
     return { success: true, message: 'Your query has been submitted successfully. We will contact you shortly.' };
-    
+
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
     // Fallback to local file storage
@@ -123,14 +123,14 @@ async function appendToGoogleSheet(data) {
 async function saveToLocalFile(data) {
   try {
     const helpRequestsFile = path.join(DATA_DIR, 'help_requests.json');
-    
+
     // Ensure data directory exists
     try {
       await fs.access(DATA_DIR);
     } catch {
       await fs.mkdir(DATA_DIR, { recursive: true });
     }
-    
+
     // Read existing requests
     let requests = [];
     try {
@@ -140,18 +140,18 @@ async function saveToLocalFile(data) {
       // File doesn't exist or is invalid, start with empty array
       requests = [];
     }
-    
+
     // Add new request
     const newRequest = {
       id: Date.now().toString(),
       ...data
     };
-    
+
     requests.push(newRequest);
-    
+
     // Save updated requests
     await fs.writeFile(helpRequestsFile, JSON.stringify(requests, null, 2));
-    
+
     return { success: true, message: 'Your query has been submitted successfully. We will contact you shortly.' };
   } catch (error) {
     console.error('Error saving to local file:', error);
@@ -171,7 +171,7 @@ async function ensureDataDir() {
 // Initialize data files
 async function initializeData() {
   await ensureDataDir();
-  
+
   // Initialize products file
   try {
     await fs.access(PRODUCTS_FILE);
@@ -185,7 +185,7 @@ async function initializeData() {
     };
     await fs.writeFile(PRODUCTS_FILE, JSON.stringify(defaultProducts, null, 2));
   }
-  
+
   // Initialize admin file
   try {
     await fs.access(ADMIN_FILE);
@@ -217,11 +217,11 @@ async function writeProducts(products) {
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -238,16 +238,16 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const adminData = JSON.parse(await fs.readFile(ADMIN_FILE, 'utf8'));
-    
+
     if (username !== adminData.username) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const isValid = await bcrypt.compare(password, adminData.password);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const token = jwt.sign({ username: adminData.username }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, message: 'Login successful' });
   } catch (error) {
@@ -282,7 +282,7 @@ app.post('/api/upload', verifyToken, upload.array('files', 10), async (req, res)
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
     }
-    
+
     const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
     res.json({ urls: fileUrls, message: 'Files uploaded successfully' });
   } catch (error) {
@@ -295,15 +295,15 @@ app.post('/api/products', verifyToken, async (req, res) => {
   try {
     const { category, product } = req.body;
     const products = await readProducts();
-    
+
     if (!products.categories[category]) {
       products.categories[category] = [];
     }
-    
+
     product.id = Date.now().toString();
     product.createdAt = new Date().toISOString();
     products.categories[category].push(product);
-    
+
     await writeProducts(products);
     res.json({ message: 'Product added successfully', product });
   } catch (error) {
@@ -317,16 +317,16 @@ app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
     const { category, id } = req.params;
     const updatedProduct = req.body;
     const products = await readProducts();
-    
+
     if (!products.categories[category]) {
       return res.status(404).json({ error: 'Category not found' });
     }
-    
+
     const index = products.categories[category].findIndex(p => p.id === id);
     if (index === -1) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     products.categories[category][index] = { ...products.categories[category][index], ...updatedProduct };
     await writeProducts(products);
     res.json({ message: 'Product updated successfully', product: products.categories[category][index] });
@@ -340,11 +340,11 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
     const { category, id } = req.params;
     const products = await readProducts();
-    
+
     if (!products.categories[category]) {
       return res.status(404).json({ error: 'Category not found' });
     }
-    
+
     products.categories[category] = products.categories[category].filter(p => p.id !== id);
     await writeProducts(products);
     res.json({ message: 'Product deleted successfully' });
@@ -377,15 +377,15 @@ app.get('/', (req, res) => {
 app.post('/api/help-request', async (req, res) => {
   try {
     const { productId, productName, productSku, name, email, query, timestamp } = req.body;
-    
+
     // Validate required fields
     if (!name || !email || !query) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Name, email, and query are required fields.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and query are required fields.'
       });
     }
-    
+
     // Prepare data for storage (only use SKU, not product ID)
     const requestData = {
       productName,
@@ -395,16 +395,16 @@ app.post('/api/help-request', async (req, res) => {
       query,
       timestamp: timestamp || new Date().toISOString()
     };
-    
+
     // Save to Google Sheet (or fallback to local file)
     const result = await appendToGoogleSheet(requestData);
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error processing help request:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Sorry, there was an error submitting your query. Please try again.' 
+    res.status(500).json({
+      success: false,
+      message: 'Sorry, there was an error submitting your query. Please try again.'
     });
   }
 });
