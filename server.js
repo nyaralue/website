@@ -12,16 +12,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'nyara-luxe-secret-key-change-in-production';
 
+const isVercel = process.env.VERCEL === '1';
+const DATA_DIR = isVercel ? '/tmp' : path.join(__dirname, 'data');
+const UPLOAD_DIR = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, 'public', 'uploads');
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'public', 'uploads');
     try {
-      await fs.mkdir(uploadDir, { recursive: true });
+      await fs.mkdir(UPLOAD_DIR, { recursive: true });
     } catch (error) {
       // Directory already exists
     }
-    cb(null, uploadDir);
+    cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -48,11 +51,11 @@ const upload = multer({
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Data files
-const PRODUCTS_FILE = path.join(__dirname, 'data', 'products.json');
-const ADMIN_FILE = path.join(__dirname, 'data', 'admin.json');
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
 
 // Google Sheets configuration
 const GOOGLE_SHEET_ID = '1R6McSZtFDe0vlt647WCoaLP4KKKyIpgDrbfwhDF_yGs';
@@ -119,13 +122,13 @@ async function appendToGoogleSheet(data) {
 // Fallback function to save to local file
 async function saveToLocalFile(data) {
   try {
-    const helpRequestsFile = path.join(__dirname, 'data', 'help_requests.json');
+    const helpRequestsFile = path.join(DATA_DIR, 'help_requests.json');
     
     // Ensure data directory exists
     try {
-      await fs.access(path.join(__dirname, 'data'));
+      await fs.access(DATA_DIR);
     } catch {
-      await fs.mkdir(path.join(__dirname, 'data'), { recursive: true });
+      await fs.mkdir(DATA_DIR, { recursive: true });
     }
     
     // Read existing requests
@@ -158,11 +161,10 @@ async function saveToLocalFile(data) {
 
 // Ensure data directory exists
 async function ensureDataDir() {
-  const dataDir = path.join(__dirname, 'data');
   try {
-    await fs.access(dataDir);
+    await fs.access(DATA_DIR);
   } catch {
-    await fs.mkdir(dataDir, { recursive: true });
+    await fs.mkdir(DATA_DIR, { recursive: true });
   }
 }
 
