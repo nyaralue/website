@@ -1003,11 +1003,12 @@ body {
     max-width: 900px;
     margin: 0 auto;
     padding: 3.5rem;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+    /* Warmer Theme Background */
+    background: linear-gradient(135deg, rgba(227, 225, 222, 0.85) 0%, rgba(208, 203, 193, 0.6) 100%);
     backdrop-filter: blur(10px);
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 40px rgba(70, 76, 60, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
     position: relative;
     overflow: hidden;
 }
