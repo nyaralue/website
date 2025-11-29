@@ -22,13 +22,37 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'nyara-luxe-secret-key-change-in-production';
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Connect to MongoDB
-if (MONGODB_URI) {
-  mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('Could not connect to MongoDB:', err));
-} else {
-  console.warn('MONGODB_URI is not defined. Database features will not work.');
+// Cached MongoDB connection for serverless
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false, // Disable buffering to fail fast if not connected
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('New MongoDB connection established');
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
 }
 
 // Configure Cloudinary
@@ -119,6 +143,7 @@ async function appendToGoogleSheet(data) {
 // Save to MongoDB (replacement for local file)
 async function saveToMongoDB(data) {
   try {
+    await connectDB();
     const newRequest = new HelpRequest(data);
     await newRequest.save();
     return { success: true, message: 'Your query has been submitted successfully.' };
@@ -131,6 +156,7 @@ async function saveToMongoDB(data) {
 // Initialize Admin User (if not exists)
 async function initializeAdmin() {
   try {
+    await connectDB();
     const adminCount = await Admin.countDocuments();
     if (adminCount === 0) {
       const hashedPassword = await bcrypt.hash('Bawalibuch@123', 10);
@@ -168,6 +194,7 @@ function verifyToken(req, res, next) {
 // Admin login
 app.post('/api/admin/login', async (req, res) => {
   try {
+    await connectDB();
     const { username, password } = req.body;
     const admin = await Admin.findOne({ username });
 
@@ -190,6 +217,7 @@ app.post('/api/admin/login', async (req, res) => {
 // Get all products (grouped by category for frontend compatibility)
 app.get('/api/products', async (req, res) => {
   try {
+    await connectDB();
     console.log('Fetching products...');
     const products = await Product.find();
     console.log(`Found ${products.length} products`);
@@ -212,6 +240,7 @@ app.get('/api/products', async (req, res) => {
 // Get products by category
 app.get('/api/products/:category', async (req, res) => {
   try {
+    await connectDB();
     const category = req.params.category;
     const products = await Product.find({ category });
     res.json(products);
@@ -239,6 +268,7 @@ app.post('/api/upload', verifyToken, upload.array('files', 10), async (req, res)
 // Add product (Admin only)
 app.post('/api/products', verifyToken, async (req, res) => {
   try {
+    await connectDB();
     const { category, product } = req.body;
 
     // Create new product
@@ -259,6 +289,7 @@ app.post('/api/products', verifyToken, async (req, res) => {
 // Update product (Admin only)
 app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
+    await connectDB();
     const { id } = req.params;
     const updatedData = req.body;
 
@@ -277,6 +308,7 @@ app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
 // Delete product (Admin only)
 app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
+    await connectDB();
     const { id } = req.params;
     const result = await Product.findOneAndDelete({ id: id });
 
@@ -293,6 +325,7 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
 // Get categories
 app.get('/api/categories', async (req, res) => {
   try {
+    await connectDB();
     const categories = await Product.distinct('category');
     res.json(categories);
   } catch (error) {
