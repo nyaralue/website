@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -7,12 +8,28 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { google } = require('googleapis');
+const mongoose = require('mongoose');
+
+// Import Models
+const Product = require('./models/Product');
+const Admin = require('./models/Admin');
+const HelpRequest = require('./models/HelpRequest');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'nyara-luxe-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'nyara-luxe-secret-key-change-in-production';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Configure multer for file uploads
+// Connect to MongoDB
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('Could not connect to MongoDB:', err));
+} else {
+  console.warn('MONGODB_URI is not defined. Database features will not work.');
+}
+
+// Configure multer for file uploads (Note: This still saves locally, which is ephemeral on Vercel)
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'public', 'uploads');
@@ -30,7 +47,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
   fileFilter: (req, file, cb) => {
@@ -50,13 +67,9 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Data files
-const PRODUCTS_FILE = path.join(__dirname, 'data', 'products.json');
-const ADMIN_FILE = path.join(__dirname, 'data', 'admin.json');
-
 // Google Sheets configuration
 const GOOGLE_SHEET_ID = '1R6McSZtFDe0vlt647WCoaLP4KKKyIpgDrbfwhDF_yGs';
-const GOOGLE_SHEET_RANGE = 'Sheet1'; // Change this to your sheet name if different
+const GOOGLE_SHEET_RANGE = 'Sheet1';
 
 // Function to authenticate with Google Sheets API
 async function getGoogleSheetsClient() {
@@ -77,14 +90,12 @@ async function getGoogleSheetsClient() {
 async function appendToGoogleSheet(data) {
   try {
     const sheets = await getGoogleSheetsClient();
-    
+
     if (!sheets) {
-      // If authentication failed, save to local file as fallback
-      console.log('Google Sheets authentication failed, saving to local file');
-      return await saveToLocalFile(data);
+      console.log('Google Sheets authentication failed, saving to MongoDB');
+      return await saveToMongoDB(data);
     }
-    
-    // Format data for Google Sheets (remove product ID)
+
     const values = [
       [
         data.id || '',
@@ -96,130 +107,63 @@ async function appendToGoogleSheet(data) {
         data.timestamp || new Date().toISOString()
       ]
     ];
-    
-    // Append to Google Sheet
-    const response = await sheets.spreadsheets.values.append({
+
+    await sheets.spreadsheets.values.append({
       spreadsheetId: GOOGLE_SHEET_ID,
       range: GOOGLE_SHEET_RANGE,
       valueInputOption: 'RAW',
-      resource: {
-        values: values
-      }
+      resource: { values: values }
     });
-    
-    return { success: true, message: 'Your query has been submitted successfully. We will contact you shortly.' };
-    
+
+    // Also save to MongoDB for redundancy
+    await saveToMongoDB(data);
+
+    return { success: true, message: 'Your query has been submitted successfully.' };
+
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
-    // Fallback to local file storage
-    return await saveToLocalFile(data);
+    return await saveToMongoDB(data);
   }
 }
 
-// Fallback function to save to local file
-async function saveToLocalFile(data) {
+// Save to MongoDB (replacement for local file)
+async function saveToMongoDB(data) {
   try {
-    const helpRequestsFile = path.join(__dirname, 'data', 'help_requests.json');
-    
-    // Ensure data directory exists
-    try {
-      await fs.access(path.join(__dirname, 'data'));
-    } catch {
-      await fs.mkdir(path.join(__dirname, 'data'), { recursive: true });
-    }
-    
-    // Read existing requests
-    let requests = [];
-    try {
-      const fileData = await fs.readFile(helpRequestsFile, 'utf8');
-      requests = JSON.parse(fileData);
-    } catch (error) {
-      // File doesn't exist or is invalid, start with empty array
-      requests = [];
-    }
-    
-    // Add new request
-    const newRequest = {
-      id: Date.now().toString(),
-      ...data
-    };
-    
-    requests.push(newRequest);
-    
-    // Save updated requests
-    await fs.writeFile(helpRequestsFile, JSON.stringify(requests, null, 2));
-    
-    return { success: true, message: 'Your query has been submitted successfully. We will contact you shortly.' };
+    const newRequest = new HelpRequest(data);
+    await newRequest.save();
+    return { success: true, message: 'Your query has been submitted successfully.' };
   } catch (error) {
-    console.error('Error saving to local file:', error);
-    return { success: false, message: 'Sorry, there was an error submitting your query. Please try again.' };
+    console.error('Error saving to MongoDB:', error);
+    return { success: false, message: 'Sorry, there was an error submitting your query.' };
   }
 }
 
-// Ensure data directory exists
-async function ensureDataDir() {
-  const dataDir = path.join(__dirname, 'data');
+// Initialize Admin User (if not exists)
+async function initializeAdmin() {
   try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-// Initialize data files
-async function initializeData() {
-  await ensureDataDir();
-  
-  // Initialize products file
-  try {
-    await fs.access(PRODUCTS_FILE);
-  } catch {
-    const defaultProducts = {
-      categories: {
-        light: [],
-        decors: [],
-        functional: []
-      }
-    };
-    await fs.writeFile(PRODUCTS_FILE, JSON.stringify(defaultProducts, null, 2));
-  }
-  
-  // Initialize admin file
-  try {
-    await fs.access(ADMIN_FILE);
-  } catch {
-    const hashedPassword = await bcrypt.hash('Bawalibuch@123', 10);
-    const adminData = {
-      username: 'UjjwalSinghi978',
-      password: hashedPassword
-    };
-    await fs.writeFile(ADMIN_FILE, JSON.stringify(adminData, null, 2));
-  }
-}
-
-// Read products
-async function readProducts() {
-  try {
-    const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
-    return JSON.parse(data);
+    const adminCount = await Admin.countDocuments();
+    if (adminCount === 0) {
+      const hashedPassword = await bcrypt.hash('Bawalibuch@123', 10);
+      const admin = new Admin({
+        username: 'UjjwalSinghi978',
+        password: hashedPassword
+      });
+      await admin.save();
+      console.log('Default admin created');
+    }
   } catch (error) {
-    return { categories: {} };
+    console.error('Error initializing admin:', error);
   }
-}
-
-// Write products
-async function writeProducts(products) {
-  await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2));
 }
 
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -235,29 +179,37 @@ function verifyToken(req, res, next) {
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const adminData = JSON.parse(await fs.readFile(ADMIN_FILE, 'utf8'));
-    
-    if (username !== adminData.username) {
+    const admin = await Admin.findOne({ username });
+
+    if (!admin) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
-    const isValid = await bcrypt.compare(password, adminData.password);
+
+    const isValid = await bcrypt.compare(password, admin.password);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
-    const token = jwt.sign({ username: adminData.username }, JWT_SECRET, { expiresIn: '24h' });
+
+    const token = jwt.sign({ username: admin.username }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, message: 'Login successful' });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Get all products
+// Get all products (grouped by category for frontend compatibility)
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await readProducts();
-    res.json(products);
+    const products = await Product.find();
+    // Group by category to match old structure: { categories: { light: [], ... } }
+    const grouped = { categories: {} };
+    products.forEach(p => {
+      if (!grouped.categories[p.category]) {
+        grouped.categories[p.category] = [];
+      }
+      grouped.categories[p.category].push(p);
+    });
+    res.json(grouped);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch products' });
   }
@@ -266,9 +218,9 @@ app.get('/api/products', async (req, res) => {
 // Get products by category
 app.get('/api/products/:category', async (req, res) => {
   try {
-    const products = await readProducts();
     const category = req.params.category;
-    res.json(products.categories[category] || []);
+    const products = await Product.find({ category });
+    res.json(products);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch products' });
   }
@@ -280,7 +232,7 @@ app.post('/api/upload', verifyToken, upload.array('files', 10), async (req, res)
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
     }
-    
+
     const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
     res.json({ urls: fileUrls, message: 'Files uploaded successfully' });
   } catch (error) {
@@ -293,19 +245,18 @@ app.post('/api/upload', verifyToken, upload.array('files', 10), async (req, res)
 app.post('/api/products', verifyToken, async (req, res) => {
   try {
     const { category, product } = req.body;
-    const products = await readProducts();
-    
-    if (!products.categories[category]) {
-      products.categories[category] = [];
-    }
-    
-    product.id = Date.now().toString();
-    product.createdAt = new Date().toISOString();
-    products.categories[category].push(product);
-    
-    await writeProducts(products);
-    res.json({ message: 'Product added successfully', product });
+
+    // Create new product
+    const newProduct = new Product({
+      id: Date.now().toString(), // Keep string ID for frontend compatibility
+      category,
+      ...product
+    });
+
+    await newProduct.save();
+    res.json({ message: 'Product added successfully', product: newProduct });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to add product' });
   }
 });
@@ -313,22 +264,16 @@ app.post('/api/products', verifyToken, async (req, res) => {
 // Update product (Admin only)
 app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
-    const { category, id } = req.params;
-    const updatedProduct = req.body;
-    const products = await readProducts();
-    
-    if (!products.categories[category]) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    
-    const index = products.categories[category].findIndex(p => p.id === id);
-    if (index === -1) {
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    const product = await Product.findOneAndUpdate({ id: id }, updatedData, { new: true });
+
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
-    products.categories[category][index] = { ...products.categories[category][index], ...updatedProduct };
-    await writeProducts(products);
-    res.json({ message: 'Product updated successfully', product: products.categories[category][index] });
+
+    res.json({ message: 'Product updated successfully', product });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update product' });
   }
@@ -337,15 +282,13 @@ app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
 // Delete product (Admin only)
 app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
-    const { category, id } = req.params;
-    const products = await readProducts();
-    
-    if (!products.categories[category]) {
-      return res.status(404).json({ error: 'Category not found' });
+    const { id } = req.params;
+    const result = await Product.findOneAndDelete({ id: id });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Product not found' });
     }
-    
-    products.categories[category] = products.categories[category].filter(p => p.id !== id);
-    await writeProducts(products);
+
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete product' });
@@ -355,8 +298,8 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
 // Get categories
 app.get('/api/categories', async (req, res) => {
   try {
-    const products = await readProducts();
-    res.json(Object.keys(products.categories));
+    const categories = await Product.distinct('category');
+    res.json(categories);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
@@ -372,20 +315,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Add a new route to handle help form submissions
+// Help form submission
 app.post('/api/help-request', async (req, res) => {
   try {
     const { productId, productName, productSku, name, email, query, timestamp } = req.body;
-    
-    // Validate required fields
+
     if (!name || !email || !query) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Name, email, and query are required fields.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and query are required fields.'
       });
     }
-    
-    // Prepare data for storage (only use SKU, not product ID)
+
     const requestData = {
       productName,
       productSku,
@@ -394,25 +335,25 @@ app.post('/api/help-request', async (req, res) => {
       query,
       timestamp: timestamp || new Date().toISOString()
     };
-    
-    // Save to Google Sheet (or fallback to local file)
+
     const result = await appendToGoogleSheet(requestData);
-    
     res.json(result);
   } catch (error) {
     console.error('Error processing help request:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Sorry, there was an error submitting your query. Please try again.' 
+    res.status(500).json({
+      success: false,
+      message: 'Sorry, there was an error submitting your query.'
     });
   }
 });
 
-// Initialize and start server
-initializeData().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Admin panel: http://localhost:${PORT}/admin`);
-  });
-});
+// Start server
+app.listen(PORT, async () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Admin panel: http://localhost:${PORT}/admin`);
 
+  // Initialize admin if connected to DB
+  if (MONGODB_URI) {
+    await initializeAdmin();
+  }
+});
