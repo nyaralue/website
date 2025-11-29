@@ -20,7 +20,8 @@ const HelpRequest = require('./models/HelpRequest');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'nyara-luxe-secret-key-change-in-production';
-const MONGODB_URI = process.env.MONGODB_URI;
+// Fallback to hardcoded URI if env var is missing (Temporary fix for Vercel issue)
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://info_db_user:DtBE84LlLUD6yaEg@free.ltju6fx.mongodb.net/?appName=Free';
 
 // Cached MongoDB connection for serverless
 let cached = global.mongoose;
