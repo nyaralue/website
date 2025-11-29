@@ -133,7 +133,7 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
             sku: formData.get('sku'), // Add SKU
             description: formData.get('description'),
             price: formData.get('price') ? parseFloat(formData.get('price')) : null,
-            media: mediaUrls.length > 0 ? mediaUrls : (formData.get('image') ? [formData.get('image')] : []),
+            media: mediaUrls, // Use the uploaded media URLs
             amazonLink: formData.get('amazonLink') || null,
             flipkartLink: formData.get('flipkartLink') || null,
             meeshoLink: formData.get('meeshoLink') || null,
@@ -490,6 +490,7 @@ async function handleFileSelect(event) {
     files.forEach((file, index) => {
         const fileWrapper = document.createElement('div');
         fileWrapper.className = 'file-preview-item';
+        fileWrapper.dataset.fileIndex = index;
         
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -532,6 +533,12 @@ async function handleFileSelect(event) {
     
     // If we have images to crop, show the crop button
     if (imageFilesToCrop.length > 0) {
+        // Remove existing crop button if any
+        const existingCropBtn = document.querySelector('.crop-images-btn');
+        if (existingCropBtn) {
+            existingCropBtn.remove();
+        }
+        
         const cropButton = document.createElement('button');
         cropButton.type = 'button';
         cropButton.className = 'crop-images-btn';
@@ -549,7 +556,7 @@ function openCropper() {
     if (imageFilesToCrop.length === 0) return;
     
     currentCropIndex = 0;
-    croppedImages = [];
+    croppedImages = new Array(imageFilesToCrop.length).fill(null); // Initialize with null values
     
     document.getElementById('cropper-modal').style.display = 'flex';
     showCurrentImageInCropper();
@@ -627,9 +634,12 @@ function applyCrop() {
         if (blob) {
             // Store cropped image
             croppedImages[currentCropIndex] = new File([blob], 
-                `cropped_${currentCropFile.name}`, 
+                `cropped_${imageFilesToCrop[currentCropIndex].name}`, 
                 { type: 'image/jpeg' }
             );
+            
+            // Update indicator
+            updateCropperIndicators();
             
             // Move to next image or finish
             if (currentCropIndex < imageFilesToCrop.length - 1) {
@@ -659,14 +669,17 @@ function skipCurrentCrop() {
 
 function finishCroppingAndUpload() {
     // Replace original images with cropped ones
+    // Create a mapping of original files to their cropped versions
+    const fileMapping = new Map();
     imageFilesToCrop.forEach((originalFile, index) => {
         if (croppedImages[index]) {
-            // Find the original file in uploadedFiles and replace it
-            const fileIndex = uploadedFiles.findIndex(f => f === originalFile);
-            if (fileIndex !== -1) {
-                uploadedFiles[fileIndex] = croppedImages[index];
-            }
+            fileMapping.set(originalFile, croppedImages[index]);
         }
+    });
+    
+    // Update uploadedFiles array with cropped images
+    uploadedFiles = uploadedFiles.map(file => {
+        return fileMapping.has(file) ? fileMapping.get(file) : file;
     });
     
     closeCropper();
@@ -677,6 +690,12 @@ function finishCroppingAndUpload() {
     successMessage.className = 'success-message';
     successMessage.textContent = 'Images cropped successfully! Click "Save Product" to upload.';
     previewContainer.appendChild(successMessage);
+    
+    // Remove crop button
+    const cropButton = document.querySelector('.crop-images-btn');
+    if (cropButton) {
+        cropButton.remove();
+    }
 }
 
 function closeCropper() {

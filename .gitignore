@@ -1,4 +1,29 @@
-node_modules
-.DS_Store
+# Dependencies
+node_modules/
+
+# Configuration files
 config/service-account-key.json
+
+# Data files
+data/
+
+# Environment variables
+.env
+
+# Logs
 *.log
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Uploads directory (can be regenerated)
+public/uploads/

@@ -1,33 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Nyara Luxe">
     <title>Nyara Luxe - Premium Interior Design</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <!-- Scroll Lamp Animation Container -->
-    <div class="scroll-lamp-container">
-        <div class="lamp-wire"></div>
-        <div class="lamp-fixture">
-            <svg viewBox="0 0 100 100" class="lamp-svg">
-                <path d="M30,0 L70,0 L80,40 L20,40 Z" fill="#464C3C" /> <!-- Shade -->
-                <rect x="45" y="40" width="10" height="10" fill="#333" /> <!-- Socket -->
-                <circle cx="50" cy="55" r="12" fill="#FFD700" class="lamp-bulb" /> <!-- Bulb -->
-            </svg>
-            <div class="lamp-light-beam"></div>
-        </div>
-    </div>
-
     <header class="header">
         <div class="container">
             <div class="logo">
@@ -35,15 +19,14 @@
                     <img src="new logo.png" alt="Nyara Luxe Logo" class="logo-image">
                 </div>
                 <div class="logo-text">
-                    <h1>NAYARA</h1>
+                    <h1>NYARA</h1>
                     <p>LUXE</p>
                 </div>
             </div>
             <nav class="nav">
-                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-                <a href="#products" class="nav-link"><i class="fas fa-couch"></i> Products</a>
-                <a href="/admin" class="nav-link"><i class="fas fa-lock"></i> Admin</a>
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="#products" class="nav-link">Products</a>
                 <div class="theme-toggle-container">
                     <label class="theme-toggle">
                         <input type="checkbox" id="theme-toggle-checkbox">
@@ -57,33 +40,28 @@
     <main>
         <section id="home" class="hero">
             <div class="hero-video-container">
-                <video class="hero-video" autoplay muted loop playsinline>
-                    <source src="/uploads/Business_Video_Creation_Request.mp4" type="video/mp4">
-                    <source src="Business_Video_Creation_Request.mp4" type="video/mp4">
-                </video>
+                <!-- Replaced video with backimg for cinematic 3D effect -->
+                <div class="hero-backimg" style="background-image: url('imgnn.png');">
+                    <!-- Moved text to top of image -->
+                    <div class="hero-text-top">
+                        <h2 class="hero-title">Premium Interior Design</h2>
+                        <p class="hero-subtitle">Transform your space with elegance and style</p>
+                    </div>
+                </div>
                 <div class="hero-video-overlay"></div>
             </div>
-            <div class="hero-content-strip">
-                <div class="container">
-                    <h2 class="hero-title animate-on-scroll">Premium Interior Design</h2>
-                    <p class="hero-subtitle animate-on-scroll">Transform your space with elegance and style</p>
-                </div>
-            </div>
+            <!-- Removed the green strip -->
         </section>
 
         <section id="products" class="products-section">
             <div class="container">
-                <h2 class="section-title animate-on-scroll"><i class="fas fa-star"></i> Our Collection</h2>
-
-                <div class="category-filter animate-on-scroll">
-                    <button class="filter-btn active" data-category="all"><i class="fas fa-th-large"></i> All
-                        Products</button>
-                    <button class="filter-btn" data-category="light"><i class="fas fa-lightbulb"></i> Light &
-                        Lamps</button>
-                    <button class="filter-btn" data-category="decors"><i class="fas fa-leaf"></i> Decors
-                        Showpieces</button>
-                    <button class="filter-btn" data-category="functional"><i class="fas fa-box-open"></i> Functional
-                        Mini Decor</button>
+                <h2 class="section-title">Our Collection</h2>
+                
+                <div class="category-filter">
+                    <button class="filter-btn active" data-category="all">All Products</button>
+                    <button class="filter-btn" data-category="light">Light & Lamps</button>
+                    <button class="filter-btn" data-category="decors">Decors Showpieces</button>
+                    <button class="filter-btn" data-category="functional">Functional Mini Decor</button>
                 </div>
 
                 <div id="products-container" class="products-grid">
@@ -110,18 +88,13 @@
                 <div class="footer-section">
                     <h3>Nyara Luxe</h3>
                     <p>Premium interior design solutions</p>
-                    <div class="social-icons">
-                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-pinterest"></i></a>
-                    </div>
                 </div>
                 <div class="footer-section">
                     <h4>Contact</h4>
-                    <p><i class="fas fa-map-marker-alt"></i> F-65, Lane 3, Rajouri Garden</p>
+                    <p>F-65, Lane 3, Rajouri Garden</p>
                     <p>New Delhi, 110027</p>
-                    <p><i class="fas fa-phone"></i> +91-9783597547</p>
-                    <p><i class="fas fa-phone"></i> +91-9079152336</p>
+                    <p>+91-9783597547</p>
+                    <p>+91-9079152336</p>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -132,5 +105,4 @@
 
     <script src="script.js"></script>
 </body>
-
 </html>

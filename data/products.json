@@ -1,7 +1,27 @@
 {
   "categories": {
-    "light": [],
-    "decors": [],
-    "functional": []
+    "jhoomar": [],
+    "chandeliers": [],
+    "lighting": [],
+    "furniture": [],
+    "decor": [],
+    "decors": [
+      {
+        "name": "ujjwal singhi",
+        "sku": "NYL-291972",
+        "description": "ww",
+        "price": 221.99,
+        "media": [
+          "/uploads/files-1764350309655-323989232.mp4",
+          "/uploads/files-1764350309781-677113302.mp4"
+        ],
+        "amazonLink": null,
+        "flipkartLink": null,
+        "meeshoLink": null,
+        "category": "decors",
+        "id": "1764350311389",
+        "createdAt": "2025-11-28T17:18:31.389Z"
+      }
+    ]
   }
 }
