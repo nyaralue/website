@@ -61,6 +61,8 @@ async function connectDB() {
 }
 
 // Configure Cloudinary
+process.env.CLOUDINARY_URL = process.env.CLOUDINARY_URL || 'cloudinary://293619391832524:7beZcA_4tDqvZB8L0jV_32Gfk4E@dgn1wdfdw';
+
 if (process.env.CLOUDINARY_URL) {
   console.log('Cloudinary configured');
 } else {
@@ -378,6 +380,12 @@ app.post('/api/help-request', async (req, res) => {
       message: 'Sorry, there was an error submitting your query.'
     });
   }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: err.message || "Something went wrong!" });
 });
 
 // Start server
