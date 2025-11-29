@@ -190,7 +190,10 @@ app.post('/api/admin/login', async (req, res) => {
 // Get all products (grouped by category for frontend compatibility)
 app.get('/api/products', async (req, res) => {
   try {
+    console.log('Fetching products...');
     const products = await Product.find();
+    console.log(`Found ${products.length} products`);
+
     // Group by category to match old structure: { categories: { light: [], ... } }
     const grouped = { categories: {} };
     products.forEach(p => {
@@ -201,7 +204,8 @@ app.get('/api/products', async (req, res) => {
     });
     res.json(grouped);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch products' });
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products', details: error.message });
   }
 });
 
