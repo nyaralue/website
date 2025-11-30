@@ -1074,7 +1074,7 @@ body {
 }
 
 .value-card {
-    background: linear-gradient(135deg, rgba(227, 225, 222, 0.5), rgba(208, 203, 193, 0.4));
+    background: #a9a294;
     border-radius: 20px;
     padding: 1.5rem 1rem;
     text-align: center;
@@ -1090,14 +1090,14 @@ body {
 .value-card h3 {
     font-family: "Cormorant Garamond", serif;
     font-size: 1.6rem;
-    color: var(--deep-olive);
+    color: #52594a;
     margin-bottom: 1rem;
     font-weight: 600;
 }
 
 .value-card p {
     font-family: "Lato", sans-serif;
-    color: var(--text-secondary);
+    color: #6b7367;
     line-height: 1.6;
     font-size: 1rem;
 }
@@ -1111,7 +1111,7 @@ body {
 }
 
 .vision-point {
-    background: rgba(227, 225, 222, 0.6);
+    background: #a9a294;
     border-radius: 20px;
     padding: 1.5rem;
     text-align: center;
@@ -1128,14 +1128,14 @@ body {
 .vision-point h3 {
     font-family: "Cormorant Garamond", serif;
     font-size: 1.6rem;
-    color: var(--deep-olive);
+    color: #52594a;
     margin: 0;
     font-weight: 600;
 }
 
 .point-icon {
     font-size: 2rem;
-    color: var(--muted-moss);
+    color: #6b7367;
     display: block;
     margin-bottom: 1rem;
 }
@@ -1152,14 +1152,14 @@ body {
 }
 
 .values-list li {
-    background: rgba(227, 225, 222, 0.6);
+    background: #a9a294;
     border-radius: 20px;
     padding: 1.5rem;
     text-align: center;
     font-family: "Lato", sans-serif;
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--deep-olive);
+    color: #52594a;
     text-transform: uppercase;
     letter-spacing: 2px;
     transition: transform 0.3s ease;
@@ -1176,7 +1176,7 @@ body {
 .values-list li::before {
     content: "✦";
     font-size: 1.0rem;
-    color: var(--taupe-sand);
+    color: #6b7367;
     display: block;
     margin-bottom: 1rem;
 }
