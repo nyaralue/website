@@ -77,7 +77,7 @@ body {
 
 .logo-icon {
     background: linear-gradient(135deg, #F5F1E8 0%, #E8DCC8 100%);
-    padding: 10px 16px;
+    padding: 6px 14px;
     border-radius: 50px;
     display: flex;
     align-items: center;
@@ -109,7 +109,7 @@ body {
 
 /* Reduce height & make logo sharper */
 .logo-image {
-    height: 55px;
+    height: 38px;
     width: auto;
     display: block;
     filter: contrast(1.1) saturate(1.05);
