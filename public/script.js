@@ -308,42 +308,40 @@ function openEcommerceModal(productId) {
 
     // Add Amazon button if link exists
     if (product.amazonLink) {
-        const amazonBtn = document.createElement('a');
+        const amazonBtn = document.createElement("a");
         amazonBtn.href = product.amazonLink;
-        amazonBtn.target = '_blank';
-        amazonBtn.className = 'ecommerce-platform-btn';
+        amazonBtn.target = "_blank";
+        amazonBtn.className = "ecommerce-platform-btn amazon";
         amazonBtn.innerHTML = `
-            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0ZGOTkwMCIgZD0iTTEyIDIzLjY0Yy02LjQzIDAtMTEuNjQtNS4yMS0xMS42NC0xMS42NFM1LjU3LjM2IDEyIC4zNiAxMjMuNjQgNS41NyAyMy42NCAxMiAyMy42NCAxOC40MyAxOC40MyAyMy42NHoiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMTIgMi4xN2MtNS40IDAtOS43OCA0LjM4LTkuNzggOS43OHM0LjM4IDkuNzggOS43OCA5Ljc4IDkuNzgtNC4zOCA5Ljc4LTkuNzgtNC4zOC05Ljc4LTkuNzgtOS43OHptMy44NiAxMy40M2gtMi4zNXYyLjM1aC0xLjV2LTIuMzVoLTIuMzV2LTEuNWgyLjM1di0yLjM1aDEuNXYyLjM1aDIuMzV2MS41eiIvPjwvc3ZnPg==" alt="Amazon">
-            <span>Buy on Amazon</span>
+            <img src="amazon-logo.png" alt="Amazon">
         `;
         ecommercePlatforms.appendChild(amazonBtn);
     }
 
     // Add Flipkart button if link exists
     if (product.flipkartLink) {
-        const flipkartBtn = document.createElement('a');
+        const flipkartBtn = document.createElement("a");
         flipkartBtn.href = product.flipkartLink;
-        flipkartBtn.target = '_blank';
-        flipkartBtn.className = 'ecommerce-platform-btn';
+        flipkartBtn.target = "_blank";
+        flipkartBtn.className = "ecommerce-platform-btn flipkart";
         flipkartBtn.innerHTML = `
-            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0ZGOTkwMCIgZD0iTTEyIDIzLjY0Yy02LjQzIDAtMTEuNjQtNS4yMS0xMS42NC0xMS42NFM1LjU3LjM2IDEyIC4zNiAxMjMuNjQgNS41NyAyMy42NCAxMiAyMy42NCAxOC40MyAxOC40MyAyMy42NHoiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMTIgMi4xN2MtNS40IDAtOS43OCA0LjM4LTkuNzggOS43OHM0LjM4IDkuNzggOS43OCA5Ljc4IDkuNzgtNC4zOCA5Ljc4LTkuNzgtNC4zOC05Ljc4LTkuNzgtOS43OHptMy44NiAxMy40M2gtMi4zNXYyLjM1aC0xLjV2LTIuMzVoLTIuMzV2LTEuNWgyLjM1di0yLjM1aDEuNXYyLjM1aDIuMzV2MS41eiIvPjwvc3ZnPg==" alt="Flipkart">
-            <span>Buy on Flipkart</span>
+            <img src="flipkart-logo.png" alt="Flipkart">
         `;
         ecommercePlatforms.appendChild(flipkartBtn);
     }
 
     // Add Meesho button if link exists
     if (product.meeshoLink) {
-        const meeshoBtn = document.createElement('a');
+        const meeshoBtn = document.createElement("a");
         meeshoBtn.href = product.meeshoLink;
-        meeshoBtn.target = '_blank';
-        meeshoBtn.className = 'ecommerce-platform-btn';
+        meeshoBtn.target = "_blank";
+        meeshoBtn.className = "ecommerce-platform-btn meesho";
         meeshoBtn.innerHTML = `
-            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0ZGOTkwMCIgZD0iTTEyIDIzLjY0Yy02LjQzIDAtMTEuNjQtNS4yMS0xMS42NC0xMS42NFM1LjU3LjM2IDEyIC4zNiAxMjMuNjQgNS41NyAyMy42NCAxMiAyMy42NCAxOC40MyAxOC40MyAyMy42NHoiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMTIgMi4xN2MtNS40IDAtOS43OCA0LjM4LTkuNzggOS43OHM0LjM4IDkuNzggOS43OCA5Ljc4IDkuNzgtNC4zOCA5Ljc4LTkuNzgtNC4zOC05Ljc4LTkuNzgtOS43OHptMy44NiAxMy40M2gtMi4zNXYyLjM1aC0xLjV2LTIuMzVoLTIuMzV2LTEuNWgyLjM1di0yLjM1aDEuNXYyLjM1aDIuMzV2MS41eiIvPjwvc3ZnPg==" alt="Meesho">
-            <span>Buy on Meesho</span>
+            <img src="meesho-logo.png" alt="Meesho">
         `;
         ecommercePlatforms.appendChild(meeshoBtn);
     }
+
 
     // Show modal
     ecommerceModal.classList.add('show');
