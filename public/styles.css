@@ -1027,6 +1027,23 @@ body {
     padding: 2.5rem 0;
 }
 
+.about-text p,
+.founder-text p,
+.vision-content > p {
+    font-family: "Lato", sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.intro-text {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--deep-olive);
+    margin-bottom: 1.5rem;
+}
+
 .story-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 2.5rem;
@@ -1045,7 +1062,6 @@ body {
 }
 
 .values-section {
-    background-color: var(--bg-secondary);
     padding: 2.5rem 0;
     margin: 1.5rem 0;
 }
@@ -1073,7 +1089,7 @@ body {
 
 .value-card h3 {
     font-family: "Cormorant Garamond", serif;
-    font-size: 1.7rem;
+    font-size: 1.6rem;
     color: var(--deep-olive);
     margin-bottom: 1rem;
     font-weight: 600;
@@ -1083,7 +1099,7 @@ body {
     font-family: "Lato", sans-serif;
     color: var(--text-secondary);
     line-height: 1.6;
-    font-size: 1.05rem;
+    font-size: 1rem;
 }
 
 /* Our Vision - Simple boxes */
@@ -1111,8 +1127,8 @@ body {
 
 .vision-point h3 {
     font-family: "Cormorant Garamond", serif;
-    font-size: 1.5rem;
-    color: var(--text-primary);
+    font-size: 1.6rem;
+    color: var(--deep-olive);
     margin: 0;
     font-weight: 600;
 }
@@ -1131,8 +1147,8 @@ body {
     margin: 2rem 0;
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 2.5rem;
+    flex-wrap: nowrap;
+    gap: 2rem;
 }
 
 .values-list li {
@@ -1141,14 +1157,15 @@ body {
     padding: 1.5rem;
     text-align: center;
     font-family: "Lato", sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--deep-olive);
     text-transform: uppercase;
     letter-spacing: 2px;
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    min-width: 280px;
+    flex: 1;
+    max-width: 300px;
 }
 
 .values-list li:hover {
@@ -1183,7 +1200,7 @@ body {
     font-family: "Lato", sans-serif;
     font-size: 1.2rem;
     color: var(--text-secondary);
-    margin-bottom: 5rem;
+    margin-bottom: 2rem;
     max-width: 700px;
     margin-left: auto;
     margin-right: auto;
@@ -1223,27 +1240,25 @@ margin: 0;
 
 /* Founder Section */
 .founder-section {
-    padding: 5rem 0;
+    padding: 0;
     position: relative;
     overflow: hidden;
 }
 
 .founder-content {
     max-width: 100%;
-    margin: 0 auto;
+    margin: 0;
     text-align: center;
     position: relative;
     z-index: 2;
 }
 
 .founder-text {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--card-bg) 0%, var(--soft-stone) 100%);
-    border-radius: 12px;
+    max-width: 100%;
+    margin: 0;
+    padding: 3rem 2rem;
+    background: var(--soft-stone);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    /* Added entrance animation */
     animation: fadeInUp 1s ease-out;
     position: relative;
     overflow: hidden;
@@ -1269,9 +1284,7 @@ margin: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.1) 50%, transparent 60%);
-    background-size: 200% 200%;
-    animation: shine 3s infinite;
+    background: rgba(255, 255, 255, 0.05);
     z-index: -1;
 }
 
@@ -1287,16 +1300,17 @@ margin: 0;
 
 .founder-text h2 {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem;
+    font-size: 2.5rem;
+    font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     position: relative;
 }
 
 .founder-name {
     font-weight: bold;
     color: var(--deep-olive);
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     margin-bottom: 1rem;
 }
 
@@ -1322,61 +1336,6 @@ margin: 0;
     margin-top: 2rem;
     font-style: italic;
     color: var(--text-secondary);
-}
-
-/* Co-Founder Section */
-.cofounder-section {
-    padding: 5rem 0;
-    position: relative;
-    overflow: hidden;
-}
-
-.cofounder-content {
-    max-width: 100%;
-    margin: 0 auto;
-    text-align: center;
-    position: relative;
-    z-index: 2;
-}
-
-.cofounder-text {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--card-bg) 0%, var(--soft-stone) 100%);
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    /* Added entrance animation with delay */
-    animation: fadeInUp 1s ease-out 0.3s both;
-    position: relative;
-    overflow: hidden;
-}
-
-.cofounder-text::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.1) 50%, transparent 60%);
-    background-size: 200% 200%;
-    animation: shine 3s infinite;
-    z-index: -1;
-}
-
-.cofounder-text h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem;
-    color: var(--text-primary);
-    margin-bottom: 1rem;
-}
-
-.cofounder-text h3 {
-    font-size: 1.3rem;
-    color: var(--deep-olive);
-    margin-bottom: 2rem;
-    font-weight: bold;
 }
 
 /* Hidden Admin Button */
@@ -1642,9 +1601,8 @@ margin: 0;
         grid-template-columns: 1fr;
     }
 
-    .founder-text,
-    .cofounder-text {
-        padding: 1.5rem;
+    .founder-text {
+        padding: 2rem 1.5rem;
     }
 
     .values-list {
@@ -1653,8 +1611,10 @@ margin: 0;
     }
 
     .values-list li {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         padding: 1.2rem;
+        min-width: 200px;
+        flex: 1 1 45%;
     }
 }
 
