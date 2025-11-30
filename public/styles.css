@@ -1074,12 +1074,13 @@ body {
 }
 
 .value-card {
-    background: #a9a294;
-    border-radius: 20px;
-    padding: 1.5rem 1rem;
+    background: linear-gradient(135deg, rgba(240, 237, 230, 0.9), rgba(230, 224, 215, 0.85));
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
     text-align: center;
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    min-height: 140px;
 }
 
 .value-card:hover {
@@ -1111,13 +1112,14 @@ body {
 }
 
 .vision-point {
-    background: #a9a294;
-    border-radius: 20px;
-    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(240, 237, 230, 0.9), rgba(230, 224, 215, 0.85));
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
     text-align: center;
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    min-width: 220px;
+    min-width: 240px;
+    min-height: 140px;
 }
 
 .vision-point:hover {
@@ -1152,9 +1154,9 @@ body {
 }
 
 .values-list li {
-    background: #a9a294;
-    border-radius: 20px;
-    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(240, 237, 230, 0.9), rgba(230, 224, 215, 0.85));
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
     text-align: center;
     font-family: "Lato", sans-serif;
     font-size: 0.9rem;
@@ -1165,7 +1167,8 @@ body {
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     flex: 1;
-    max-width: 300px;
+    max-width: 320px;
+    min-height: 120px;
 }
 
 .values-list li:hover {
