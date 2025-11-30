@@ -102,14 +102,27 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         saveBtn.textContent = 'Saving...';
         saveBtn.disabled = true;
         
-        // Upload files first if any
+        // Separate existing media URLs from new files to upload
         let mediaUrls = [];
-        if (uploadedFiles.length > 0) {
+        const newFilesToUpload = [];
+
+        uploadedFiles.forEach(file => {
+            if (file.isExisting && file.url) {
+                // This is an existing URL, keep it
+                mediaUrls.push(file.url);
+            } else if (file instanceof File) {
+                // This is a new file to upload
+                newFilesToUpload.push(file);
+            }
+        });
+
+        // Upload new files if any
+        if (newFilesToUpload.length > 0) {
             const uploadFormData = new FormData();
-            uploadedFiles.forEach((file, index) => {
+            newFilesToUpload.forEach((file) => {
                 uploadFormData.append('files', file);
             });
-            
+
             const uploadResponse = await fetch(`${API_BASE}/upload`, {
                 method: 'POST',
                 headers: {
@@ -117,23 +130,23 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
                 },
                 body: uploadFormData
             });
-            
+
             if (uploadResponse.ok) {
                 const uploadData = await uploadResponse.json();
-                mediaUrls = uploadData.urls;
+                mediaUrls = [...mediaUrls, ...uploadData.urls];
             } else {
                 const errorData = await uploadResponse.json();
                 throw new Error(errorData.error || 'Failed to upload files');
             }
         }
-        
+
         const formData = new FormData(e.target);
         const product = {
             name: formData.get('name'),
-            sku: formData.get('sku'), // Add SKU
+            sku: formData.get('sku'),
             description: formData.get('description'),
             price: formData.get('price') ? parseFloat(formData.get('price')) : null,
-            media: mediaUrls, // Use the uploaded media URLs
+            media: mediaUrls,
             amazonLink: formData.get('amazonLink') || null,
             flipkartLink: formData.get('flipkartLink') || null,
             meeshoLink: formData.get('meeshoLink') || null,
@@ -345,11 +358,7 @@ function editProduct(productId) {
     // Update category dropdown to match product's category
     document.getElementById('category-dropdown').value = productCategory;
 
-    // Open modal first
-    document.getElementById('product-modal').style.display = 'flex';
-    document.getElementById('modal-title').textContent = 'Edit Product';
-
-    // Then populate form with product data
+    // Populate form with product data BEFORE opening modal
     document.getElementById('product-id').value = productToEdit.id;
     document.getElementById('product-name').value = productToEdit.name || '';
     document.getElementById('product-sku').value = productToEdit.sku || '';
@@ -369,7 +378,8 @@ function editProduct(productId) {
         uploadedFiles = productToEdit.media.map(url => {
             return {
                 name: url.split('/').pop(),
-                url: url
+                url: url,
+                isExisting: true
             };
         });
 
@@ -377,6 +387,7 @@ function editProduct(productId) {
         productToEdit.media.forEach((url, index) => {
             const fileWrapper = document.createElement('div');
             fileWrapper.className = 'file-preview-item';
+            fileWrapper.dataset.existingUrl = url;
 
             if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm')) {
                 fileWrapper.innerHTML = `
@@ -404,6 +415,9 @@ function editProduct(productId) {
     } else {
         uploadedFiles = [];
     }
+
+    // Now open the modal using the proper function
+    openProductModal();
 }
 
 async function deleteProduct(productId) {
@@ -434,21 +448,21 @@ function openProductModal() {
     const form = document.getElementById('product-form');
     const title = document.getElementById('modal-title');
 
-    // Reset form
-    form.reset();
-    document.getElementById('product-id').value = '';
-    document.getElementById('upload-preview').innerHTML = '';
-    uploadedFiles = [];
-
-    // Generate unique SKU only if adding new product
+    // Only reset if we're NOT editing
     if (!editingProductId) {
+        form.reset();
+        document.getElementById('product-id').value = '';
+        document.getElementById('upload-preview').innerHTML = '';
+        uploadedFiles = [];
+
+        // Generate unique SKU for new product
         const sku = 'NYL-' + Date.now().toString().slice(-6);
         document.getElementById('product-sku').value = sku;
-        editingProductId = null;
-    }
 
-    // Update title
-    title.textContent = editingProductId ? 'Edit Product' : 'Add Product';
+        title.textContent = 'Add Product';
+    } else {
+        title.textContent = 'Edit Product';
+    }
 
     // Show modal
     modal.style.display = 'flex';
