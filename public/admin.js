@@ -323,7 +323,7 @@ function editProduct(productId) {
     // Find the product by ID across all categories
     let productToEdit = null;
     let productCategory = null;
-    
+
     for (const category in allProducts.categories) {
         const product = allProducts.categories[category].find(p => p.id === productId);
         if (product) {
@@ -332,49 +332,52 @@ function editProduct(productId) {
             break;
         }
     }
-    
+
     if (!productToEdit) {
         showNotification('Product not found', 'error');
         return;
     }
-    
-    // Set editing mode
+
+    // Set editing mode BEFORE opening modal
     editingProductId = productId;
-    currentCategory = productCategory; // Set the category for this product
-    
+    currentCategory = productCategory;
+
     // Update category dropdown to match product's category
     document.getElementById('category-dropdown').value = productCategory;
-    
-    // Populate form with product data
+
+    // Open modal first
+    document.getElementById('product-modal').style.display = 'flex';
+    document.getElementById('modal-title').textContent = 'Edit Product';
+
+    // Then populate form with product data
     document.getElementById('product-id').value = productToEdit.id;
     document.getElementById('product-name').value = productToEdit.name || '';
     document.getElementById('product-sku').value = productToEdit.sku || '';
     document.getElementById('product-description').value = productToEdit.description || '';
     document.getElementById('product-price').value = productToEdit.price || '';
-    
+
     // Populate links
     document.getElementById('product-amazon-link').value = productToEdit.amazonLink || '';
     document.getElementById('product-flipkart-link').value = productToEdit.flipkartLink || '';
     document.getElementById('product-meesho-link').value = productToEdit.meeshoLink || '';
-    
+
     // Handle media preview
     const previewContainer = document.getElementById('upload-preview');
     previewContainer.innerHTML = '';
-    
+
     if (productToEdit.media && productToEdit.media.length > 0) {
         uploadedFiles = productToEdit.media.map(url => {
-            // Create a mock file object for existing media
             return {
                 name: url.split('/').pop(),
                 url: url
             };
         });
-        
+
         // Show existing media previews
         productToEdit.media.forEach((url, index) => {
             const fileWrapper = document.createElement('div');
             fileWrapper.className = 'file-preview-item';
-            
+
             if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm')) {
                 fileWrapper.innerHTML = `
                     <div class="file-preview-video">
@@ -395,18 +398,12 @@ function editProduct(productId) {
                     </div>
                 `;
             }
-            
+
             previewContainer.appendChild(fileWrapper);
         });
     } else {
         uploadedFiles = [];
     }
-    
-    // Update modal title
-    document.getElementById('modal-title').textContent = 'Edit Product';
-    
-    // Show modal
-    document.getElementById('product-modal').style.display = 'flex';
 }
 
 async function deleteProduct(productId) {
@@ -436,23 +433,23 @@ function openProductModal() {
     const modal = document.getElementById('product-modal');
     const form = document.getElementById('product-form');
     const title = document.getElementById('modal-title');
-    
+
     // Reset form
     form.reset();
     document.getElementById('product-id').value = '';
     document.getElementById('upload-preview').innerHTML = '';
     uploadedFiles = [];
-    editingProductId = null;
-    
-    // Generate unique SKU if adding new product
+
+    // Generate unique SKU only if adding new product
     if (!editingProductId) {
         const sku = 'NYL-' + Date.now().toString().slice(-6);
         document.getElementById('product-sku').value = sku;
+        editingProductId = null;
     }
-    
+
     // Update title
     title.textContent = editingProductId ? 'Edit Product' : 'Add Product';
-    
+
     // Show modal
     modal.style.display = 'flex';
 }
