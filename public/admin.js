@@ -106,15 +106,13 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         let mediaUrls = [];
         const newFilesToUpload = [];
 
-        uploadedFiles.forEach(file => {
+        if (uploadedFiles && uploadedFiles.length > 0) { uploadedFiles.forEach(file => {
             if (file.isExisting && file.url) {
                 // This is an existing URL, keep it
                 mediaUrls.push(file.url);
-            } else if (file instanceof File) {
+            } else {
                 // This is a new file to upload
-                newFilesToUpload.push(file);
-            }
-        });
+                newFilesToUpload.push(file); } }); }
 
         // Upload new files if any
         if (newFilesToUpload.length > 0) {
@@ -372,7 +370,7 @@ function editProduct(productId) {
 
     // Handle media preview
     const previewContainer = document.getElementById('upload-preview');
-    previewContainer.innerHTML = '';
+    
 
     if (productToEdit.media && productToEdit.media.length > 0) {
         uploadedFiles = productToEdit.media.map(url => {
@@ -492,10 +490,10 @@ async function handleFileSelect(event) {
     
     // Filter image files for cropping
     imageFilesToCrop = files.filter(file => file.type.startsWith('image/'));
-    uploadedFiles = files; // All files for upload
+    uploadedFiles = [...uploadedFiles, ...files];
     
     const previewContainer = document.getElementById('upload-preview');
-    previewContainer.innerHTML = '';
+    
     
     // Show preview for all files
     files.forEach((file, index) => {

@@ -6,6 +6,14 @@ const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
     price: { type: Number, required: true },
     description: { type: String },
+    sku: { type: String },
+    amazonLink: { type: String },
+    flipkartLink: { type: String },
+    meeshoLink: { type: String },
+    sku: { type: String },
+    amazonLink: { type: String },
+    flipkartLink: { type: String },
+    meeshoLink: { type: String },
     media: [{ type: String }],
     createdAt: { type: Date, default: Date.now }
 });
