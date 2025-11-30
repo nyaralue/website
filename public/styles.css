@@ -50,7 +50,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, var(--deep-olive) 0%, var(--muted-moss) 50%, var(--taupe-sand) 100%);
+    background: var(--deep-olive);
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -75,49 +75,16 @@ body {
     gap: 8px;
 }
 
-.logo-icon {
-    background: linear-gradient(135deg, #F5F1E8 0%, #E8DCC8 100%);
-    padding: 6px 14px;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    position: relative;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.logo-icon::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: 50px;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-.logo-icon:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    background: linear-gradient(135deg, #F8F4EC 0%, #EDE2CC 100%);
-}
-
-/* Reduce height & make logo sharper */
+/* Logo Image */
 .logo-image {
-    height: 38px;
+    height: 60px;
     width: auto;
     display: block;
-    filter: contrast(1.1) saturate(1.05);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
 }
 
-.logo-icon:hover .logo-image {
-    filter: contrast(1.15) saturate(1.1) brightness(1.02);
+.logo-image:hover {
+    transform: scale(1.05);
 }
 
 /* Adjust text placement */
@@ -172,11 +139,7 @@ body {
 
 
 .nav-link {
-    /* Applied gradient text color */
-    background: linear-gradient(to right, var(--warm-off-white), var(--soft-stone));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--warm-off-white);
     text-decoration: none;
     font-weight: 400;
     transition: all 0.3s;
@@ -187,11 +150,7 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
-    /* Enhanced hover effect with gradient */
-    background: linear-gradient(to right, var(--taupe-sand), var(--warm-off-white));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--taupe-sand);
     transform: translateY(-2px);
 }
 
@@ -202,8 +161,7 @@ body {
     left: 0;
     right: 0;
     height: 2px;
-    /* Gradient underline for active link */
-    background: linear-gradient(to right, var(--taupe-sand), var(--warm-off-white));
+    background: var(--taupe-sand);
     border-radius: 2px;
 }
 
@@ -665,7 +623,7 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: linear-gradient(135deg, var(--deep-olive) 0%, var(--muted-moss) 100%);
+    background: var(--deep-olive);
     color: var(--warm-off-white);
     border: none;
     border-radius: 50px;
@@ -1033,13 +991,13 @@ body {
     margin: 3rem 0;
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 3rem;
 }
 
 .values-list li {
     font-family: "Lato", sans-serif;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--deep-olive);
     display: flex;
@@ -1049,6 +1007,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 2px;
     transition: transform 0.3s;
+    white-space: nowrap;
 }
 
 .values-list li:hover {
@@ -1136,7 +1095,7 @@ body {
 }
 
 .vision-point {
-    background: linear-gradient(135deg, rgba(227, 225, 222, 0.5), rgba(208, 203, 193, 0.4));
+    background: rgba(227, 225, 222, 0.6);
     border-radius: 20px;
     padding: 1.5rem;
     text-align: center;
@@ -1177,7 +1136,7 @@ body {
 }
 
 .values-list li {
-    background: linear-gradient(135deg, rgba(227, 225, 222, 0.5), rgba(208, 203, 193, 0.4));
+    background: rgba(227, 225, 222, 0.6);
     border-radius: 20px;
     padding: 1.5rem;
     text-align: center;
@@ -1429,7 +1388,7 @@ margin: 0;
 .admin-access-btn {
     display: inline-block;
     padding: 0.8rem 1.5rem;
-    background: linear-gradient(135deg, var(--deep-olive) 0%, var(--muted-moss) 100%);
+    background: var(--deep-olive);
     color: var(--warm-off-white);
     text-decoration: none;
     border-radius: 6px;
@@ -1686,6 +1645,16 @@ margin: 0;
     .founder-text,
     .cofounder-text {
         padding: 1.5rem;
+    }
+
+    .values-list {
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .values-list li {
+        font-size: 0.85rem;
+        padding: 1.2rem;
     }
 }
 
