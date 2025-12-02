@@ -71,8 +71,18 @@ function displayProducts() {
         return;
     }
 
-    // Setup Staggered Carousel
-    setupStaggeredCarousel(container, productsToShow);
+    // Destroy existing carousel if any
+    if (carouselInstance) {
+        carouselInstance.destroy();
+    }
+
+    // Initialize StaggerCarousel with products
+    carouselInstance = new StaggerCarousel('#products-container', {
+        autoRotate: false,
+        onCardClick: handleProductAction
+    });
+
+    carouselInstance.loadProducts(productsToShow);
 }
 
 function setupStaggeredCarousel(container, products) {
