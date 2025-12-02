@@ -151,7 +151,8 @@ class StaggerCarousel {
             width: ${this.cardSize}px;
             height: auto;
             transform: translate(-50%, -50%) translateX(${translateX}px) translateY(${translateY}px) rotate(${rotation}deg) scale(${scale});
-            z-index: ${isCenter ? 10 : 0};
+            z-index: ${isCenter ? 10 : 5 - Math.abs(position)};
+            opacity: ${opacity};
         `;
 
         const mediaUrl = product.media && product.media.length > 0 ? product.media[0] : null;
