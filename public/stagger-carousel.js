@@ -142,7 +142,7 @@ class StaggerCarousel {
 
         // More horizontal spacing and smoother transitions
         const translateX = (this.cardSize * 0.85) * position;
-        const translateY = isCenter ? -65 : position % 2 ? 15 : -15;
+        const translateY = isCenter ? -40 : Math.abs(position) * 8;
         const rotation = isCenter ? 0 : position % 2 ? 2.5 : -2.5;
 
         card.style.cssText = `
