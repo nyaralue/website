@@ -190,58 +190,6 @@ function updateCarouselPositions() {
     const container = document.querySelector('.staggered-carousel-container');
     if (!container) return;
 
-    const total = carouselState.products.length;
-
-    carouselState.products.forEach((product, index) => {
-        const card = container.querySelector(`.carousel-card[data-id="${product.tempId}"]`);
-        if (!card) return;
-
-        // Calculate position relative to center
-        // We want the middle of the array to be the "active" center card
-        // But since we rotate the array, let's fix the "center" index visually
-        // The React code used a virtual position.
-        // Let's try to map index to a visual position where 0 is center.
-
-        // If we have 5 items: 0, 1, 2, 3, 4. Center is 2.
-        // 0 -> -2
-        // 1 -> -1
-        // 2 -> 0
-        // 3 -> 1
-        // 4 -> 2
-
-        const centerIndex = Math.floor(total / 2);
-        let dist = index - centerIndex;
-
-        // Adjust for even numbers if needed, but odd is better for centering
-
-        const isCenter = dist === 0;
-
-        // Styles
-        const cardSize = carouselState.cardSize;
-        const x = (cardSize / 1.5) * dist;
-        const y = isCenter ? 0 : (dist % 2 === 0 ? 20 : -20); // Alternating up/down
-        const rotate = isCenter ? 0 : (dist % 2 === 0 ? 3 : -3);
-        const scale = isCenter ? 1 : 0.9 - (Math.abs(dist) * 0.05);
-        const zIndex = isCenter ? 100 : 100 - Math.abs(dist);
-
-        // Fade out items that are too far
-        const opacity = Math.abs(dist) > 2 ? 0 : 1;
-        const pointerEvents = isCenter ? 'auto' : 'none'; // Only center card is interactive
-
-        card.style.transform = `translate(-50%, -50%) translateX(${x}px) translateY(${y}px) rotate(${rotate}deg) scale(${scale})`;
-        card.style.zIndex = zIndex;
-        card.style.opacity = opacity;
-        card.style.pointerEvents = pointerEvents;
-
-        if (isCenter) {
-            card.classList.add('active');
-        } else {
-            card.classList.remove('active');
-        }
-    });
-
-    // Re-attach listeners to buttons?
-    // The buttons are inside the cards, which are not destroyed.
     // So listeners should persist.
     // However, we need to make sure we attach them initially.
     // We can just call this every time to be safe, or only on init.
