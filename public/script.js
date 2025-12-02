@@ -1,171 +1,167 @@
-// script.js - Handle product loading and display for Nyara Luxe website
+const API_BASE = '/api';
 
-// DOM Elements
-const productsContainer = document.getElementById('products-container');
-const carouselContainer = document.getElementById('carousel-container');
-const filterButtons = document.querySelectorAll('.filter-btn');
-const categoryFilter = document.getElementById('category-filter');
-const ecommerceModal = document.getElementById('ecommerce-modal');
-const closeEcommerceModal = document.getElementById('close-ecommerce-modal');
-const ecommercePlatforms = document.getElementById('ecommerce-platforms');
-const ecommerceModalTitle = document.getElementById('ecommerce-modal-title');
-
-// Global variables
-let allProducts = { categories: {} };
+let allProducts = {};
 let currentCategory = 'all';
-let currentProductForHelp = null;
-let currentView = 'carousel';
-let staggerCarousel = null; // Track which product the help request is for
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', function () {
+// Load products on page load
+document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
-    setupEventListeners();
+    setupCategoryFilters();
+    setupDarkMode();
+    setupEcommerceModal();
+    setupScrollAnimations();
 });
 
-// Load products from API
+// Load all products
 async function loadProducts() {
     try {
-        showLoadingState();
-
-        const response = await fetch('/api/products');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        const response = await fetch(`${API_BASE}/products`);
         allProducts = await response.json();
         displayProducts();
-        updateCarousel();
     } catch (error) {
         console.error('Error loading products:', error);
-        showErrorState('Failed to load products. Please try again later.');
+        showEmptyState();
     }
 }
 
+// Setup category filter buttons
+function setupCategoryFilters() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Update active state
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update current category
+            currentCategory = btn.dataset.category;
+            displayProducts();
+        });
+    });
+}
+
+// Staggered Carousel State
+let carouselState = {
+    products: [],
+    cardSize: 320
+};
+
 // Display products based on current filter
 function displayProducts() {
-    if (!productsContainer) return;
+    const container = document.getElementById('products-container');
 
-    // Clear container
-    productsContainer.innerHTML = '';
+    if (!container) return;
 
     // Get products to display
-    let productsToDisplay = [];
+    let productsToShow = [];
 
     if (currentCategory === 'all') {
-        // Combine all products from all categories
-        Object.values(allProducts.categories).forEach(categoryProducts => {
-            productsToDisplay = productsToDisplay.concat(categoryProducts);
+        // Show all products from all categories
+        Object.values(allProducts.categories || {}).forEach(categoryProducts => {
+            productsToShow.push(...categoryProducts);
         });
     } else {
-        // Get products from specific category
-        productsToDisplay = allProducts.categories[currentCategory] || [];
+        productsToShow = allProducts.categories[currentCategory] || [];
     }
 
-    // Display products or show no products message
-    if (productsToDisplay.length === 0) {
-        productsContainer.innerHTML = `
-            <div class="empty-state">
+    if (productsToShow.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
                 <h3>No Products Found</h3>
-                <p>We couldn't find any products in this category.</p>
+                <p>Check back soon for new additions to our collection.</p>
             </div>
         `;
         return;
     }
 
-    // Create product cards
-    productsToDisplay.forEach(product => {
-        const productCard = createProductCard(product);
-        productsContainer.appendChild(productCard);
-    });
-
-    // Add event listeners to Buy Now buttons
-    document.querySelectorAll('.buy-now-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const productId = this.getAttribute('data-id');
-            openEcommerceModal(productId);
-        });
-    });
-
-    // Add event listeners to Help buttons
-    document.querySelectorAll('.help-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const productId = this.getAttribute('data-id');
-            openHelpModal(productId);
-        });
-    });
-
-    // Initialize carousels for all products
-    initializeCarousels();
+    // Setup Staggered Carousel
+    setupStaggeredCarousel(container, productsToShow);
 }
 
-// Create a product card element with carousel
-function createProductCard(product) {
-    const card = document.createElement('div');
-    card.className = 'product-card';
+function setupStaggeredCarousel(container, products) {
+    // Clear container and set class
+    container.innerHTML = '';
+    container.className = 'staggered-carousel-container';
 
-    // Create carousel HTML if there are multiple media items
-    let carouselHTML = '';
-    if (product.media && product.media.length > 0) {
-        if (product.media.length > 1) {
-            // Multiple media items - create carousel
-            carouselHTML = `
-                <div class="product-carousel">
-                    <div class="carousel-container">
-                        ${product.media.map((media, index) => `
-                            <div class="carousel-slide ${index === 0 ? 'active' : ''}">
-                                ${isVideo(media) ?
-                    `<video autoplay muted loop playsinline>
-                                        <source src="${media}" type="video/mp4">
-                                        Your browser does not support the video tag.
-                                    </video>` :
-                    `<img src="${media}" alt="${product.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0QwQ0JDMiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkxhdG8iIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NjRDM0MiPkltYWdlPC90ZXh0Pjwvc3ZnPg=='">`
-                }
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="carousel-nav carousel-prev" onclick="changeSlide(this.closest('.product-card'), -1)">❮</button>
-                    <button class="carousel-nav carousel-next" onclick="changeSlide(this.closest('.product-card'), 1)">❯</button>
-                    <div class="carousel-indicators">
-                        ${product.media.map((_, index) => `
-                            <span class="carousel-indicator ${index === 0 ? 'active' : ''}" onclick="setCurrentSlide(this.closest('.product-card'), ${index})"></span>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+    // Initialize state
+    // Add tempId for tracking
+    carouselState.products = products.map((p, i) => ({ ...p, tempId: i }));
+
+    // Create card elements
+    carouselState.products.forEach((product) => {
+        const card = createCarouselCard(product);
+        container.appendChild(card);
+    });
+
+    // Add controls
+    const controls = document.createElement('div');
+    controls.className = 'carousel-controls';
+    controls.innerHTML = `
+        <button class="carousel-btn prev-btn" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+        <button class="carousel-btn next-btn" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+    `;
+    container.appendChild(controls);
+
+    // Add event listeners
+    controls.querySelector('.prev-btn').addEventListener('click', () => moveCarousel(-1));
+    controls.querySelector('.next-btn').addEventListener('click', () => moveCarousel(1));
+
+    // Initial render
+    updateCarouselPositions();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        carouselState.cardSize = window.innerWidth < 640 ? 280 : 320;
+        updateCarouselPositions();
+    });
+}
+
+function createCarouselCard(product) {
+    const card = document.createElement('div');
+    card.className = 'carousel-card';
+    card.dataset.id = product.tempId;
+
+    // Handle media
+    const media = product.media && product.media.length > 0
+        ? product.media
+        : (product.image ? [product.image] : []);
+
+    let mediaHtml = '';
+    if (media.length > 0) {
+        const isVideo = media[0].includes('.mp4') || media[0].includes('.mov') || media[0].includes('.avi') || media[0].includes('.webm');
+        if (isVideo) {
+            mediaHtml = `<video src="${media[0]}" autoplay muted loop playsinline></video>`;
         } else {
-            // Single media item
-            const media = product.media[0];
-            carouselHTML = `
-                <div class="product-image">
-                    ${isVideo(media) ?
-                    `<video autoplay muted loop playsinline>
-                            <source src="${media}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>` :
-                    `<img src="${media}" alt="${product.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0QwQ0JDMiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkxhdG8iIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NjRDM0MiPkltYWdlPC90ZXh0Pjwvc3ZnPg=='">`
-                }
-                </div>
-            `;
+            mediaHtml = `<img src="${media[0]}" alt="${product.name}">`;
         }
     } else {
-        // No media items
-        carouselHTML = `
-            <div class="product-image">
-                <div class="no-image-placeholder">No Image</div>
-            </div>
-        `;
+        mediaHtml = `<div class="product-image-placeholder">🏠</div>`;
     }
 
     card.innerHTML = `
-        ${carouselHTML}
+        <div class="product-image">
+            ${mediaHtml}
+        </div>
         <div class="product-info">
-            <h3 class="product-title">${product.name}</h3>
-            ${product.description ? `<p class="product-description">${product.description}</p>` : ''}
-            ${product.price ? `<div class="product-price">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
+            <div class="product-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
+            <h3 class="product-name">${product.name || 'Product Name'}</h3>
+            <p class="product-description">${product.description || 'Premium interior design piece'}</p>
+            ${product.price ? `<div class="product-price">₹${product.price}</div>` : ''}
             <div class="product-actions">
-                <button class="buy-now-btn" data-id="${product.id}">Buy Now</button>
-                <button class="help-btn" data-id="${product.id}">May I Help You?</button>
+                <button class="buy-now-btn" 
+                    data-product-id="${product.id}" 
+                    data-amazon-link="${product.amazonLink || ''}"
+                    data-flipkart-link="${product.flipkartLink || ''}"
+                    data-meesho-link="${product.meeshoLink || ''}"
+                    data-product-name="${product.name || 'Product'}">
+                    Buy Now
+                </button>
+                <button class="help-btn" 
+                    data-product-id="${product.id}" 
+                    data-product-name="${product.name || 'Product'}"
+                    data-product-sku="${product.sku || ''}">
+                    Help
+                </button>
             </div>
         </div>
     `;
@@ -173,259 +169,231 @@ function createProductCard(product) {
     return card;
 }
 
-// Check if a media URL is a video
-function isVideo(url) {
-    return url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
-}
-
-// Initialize carousels
-function initializeCarousels() {
-    // Carousels are initialized with the HTML, but we can add any additional setup here if needed
-}
-
-// Change slide in carousel
-function changeSlide(card, direction) {
-    const carousel = card.querySelector('.carousel-container');
-    const slides = carousel.querySelectorAll('.carousel-slide');
-    const indicators = card.querySelectorAll('.carousel-indicator');
-
-    // Find current active slide
-    let currentIndex = 0;
-    for (let i = 0; i < slides.length; i++) {
-        if (slides[i].classList.contains('active')) {
-            currentIndex = i;
-            break;
+function moveCarousel(steps) {
+    if (steps > 0) {
+        // Move forward (Next)
+        for (let i = 0; i < steps; i++) {
+            const item = carouselState.products.shift();
+            carouselState.products.push(item);
+        }
+    } else {
+        // Move backward (Prev)
+        for (let i = 0; i < Math.abs(steps); i++) {
+            const item = carouselState.products.pop();
+            carouselState.products.unshift(item);
         }
     }
-
-    // Remove active class from current slide and indicator
-    slides[currentIndex].classList.remove('active');
-    if (indicators[currentIndex]) {
-        indicators[currentIndex].classList.remove('active');
-    }
-
-    // Calculate new index
-    let newIndex = currentIndex + direction;
-    if (newIndex >= slides.length) {
-        newIndex = 0;
-    } else if (newIndex < 0) {
-        newIndex = slides.length - 1;
-    }
-
-    // Add active class to new slide and indicator
-    slides[newIndex].classList.add('active');
-    if (indicators[newIndex]) {
-        indicators[newIndex].classList.add('active');
-    }
+    updateCarouselPositions();
 }
 
-// Set current slide directly
-function setCurrentSlide(card, index) {
-    const carousel = card.querySelector('.carousel-container');
-    const slides = carousel.querySelectorAll('.carousel-slide');
-    const indicators = card.querySelectorAll('.carousel-indicator');
+function updateCarouselPositions() {
+    const container = document.querySelector('.staggered-carousel-container');
+    if (!container) return;
 
-    // Remove active class from all slides and indicators
-    slides.forEach(slide => slide.classList.remove('active'));
-    indicators.forEach(indicator => indicator.classList.remove('active'));
+    const total = carouselState.products.length;
 
-    // Add active class to selected slide and indicator
-    slides[index].classList.add('active');
-    indicators[index].classList.add('active');
+    carouselState.products.forEach((product, index) => {
+        const card = container.querySelector(`.carousel-card[data-id="${product.tempId}"]`);
+        if (!card) return;
+
+        // Calculate position relative to center
+        // We want the middle of the array to be the "active" center card
+        // But since we rotate the array, let's fix the "center" index visually
+        // The React code used a virtual position.
+        // Let's try to map index to a visual position where 0 is center.
+
+        // If we have 5 items: 0, 1, 2, 3, 4. Center is 2.
+        // 0 -> -2
+        // 1 -> -1
+        // 2 -> 0
+        // 3 -> 1
+        // 4 -> 2
+
+        const centerIndex = Math.floor(total / 2);
+        let dist = index - centerIndex;
+
+        // Adjust for even numbers if needed, but odd is better for centering
+
+        const isCenter = dist === 0;
+
+        // Styles
+        const cardSize = carouselState.cardSize;
+        const x = (cardSize / 1.5) * dist;
+        const y = isCenter ? 0 : (dist % 2 === 0 ? 20 : -20); // Alternating up/down
+        const rotate = isCenter ? 0 : (dist % 2 === 0 ? 3 : -3);
+        const scale = isCenter ? 1 : 0.9 - (Math.abs(dist) * 0.05);
+        const zIndex = isCenter ? 100 : 100 - Math.abs(dist);
+
+        // Fade out items that are too far
+        const opacity = Math.abs(dist) > 2 ? 0 : 1;
+        const pointerEvents = isCenter ? 'auto' : 'none'; // Only center card is interactive
+
+        card.style.transform = `translate(-50%, -50%) translateX(${x}px) translateY(${y}px) rotate(${rotate}deg) scale(${scale})`;
+        card.style.zIndex = zIndex;
+        card.style.opacity = opacity;
+        card.style.pointerEvents = pointerEvents;
+
+        if (isCenter) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+
+    // Re-attach listeners to buttons?
+    // The buttons are inside the cards, which are not destroyed.
+    // So listeners should persist.
+    // However, we need to make sure we attach them initially.
+    // We can just call this every time to be safe, or only on init.
+    // Since we create cards once in setup, listeners are there.
+    // But we need to attach the GLOBAL listeners for modals.
+    attachBuyNowListeners();
 }
 
-// Set up event listeners
-function setupEventListeners() {
-    // Filter buttons
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            // Update active button
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
+// Attach Buy Now button listeners
+function attachBuyNowListeners() {
+    // Buy Now buttons
+    const buyButtons = document.querySelectorAll('.buy-now-btn');
+    buyButtons.forEach(btn => {
+        // Remove old listeners to avoid duplicates? 
+        // Cloning node is a cheap way to wipe listeners
+        // btn.replaceWith(btn.cloneNode(true)); 
+        // But we need to re-select.
 
-            // Update category and display products
-            currentCategory = this.getAttribute('data-category');
-            displayProducts();
-            updateCarousel();
+        // Better: just ensure we don't double attach.
+        // For now, let's assume simple addEventListener is fine if we are careful.
+        // Actually, since we re-create cards in setupStaggeredCarousel, we need to attach there.
+        // But updateCarouselPositions doesn't recreate cards.
+
+        // Let's just attach listeners in createCarouselCard? 
+        // No, because we need the global functions like showEcommerceModal.
+
+        btn.onclick = (e) => {
+            e.stopPropagation(); // Prevent card click
+            const amazonLink = btn.dataset.amazonLink;
+            const flipkartLink = btn.dataset.flipkartLink;
+            const meeshoLink = btn.dataset.meeshoLink;
+            const productName = btn.dataset.productName;
+            showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName);
+        };
+    });
+
+    // Help buttons
+    const helpButtons = document.querySelectorAll('.help-btn');
+    helpButtons.forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const productId = btn.dataset.productId;
+            const productName = btn.dataset.productName;
+            const productSku = btn.dataset.productSku;
+            showHelpFormModal(productId, productName, productSku);
+        };
+    });
+}
+
+// Show ecommerce platform selection modal
+function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
+    const modal = document.getElementById('ecommerce-modal');
+    const modalTitle = document.getElementById('ecommerce-modal-title');
+    const platformsContainer = document.getElementById('ecommerce-platforms');
+
+    modalTitle.textContent = `Buy ${productName}`;
+    platformsContainer.innerHTML = '';
+
+    let hasLinks = false;
+
+    if (amazonLink) {
+        hasLinks = true;
+        const amazonBtn = document.createElement('a');
+        amazonBtn.href = amazonLink;
+        amazonBtn.target = '_blank';
+        amazonBtn.className = 'ecommerce-platform-btn';
+        amazonBtn.innerHTML = `<span>Buy on Amazon</span>`;
+        platformsContainer.appendChild(amazonBtn);
+    }
+
+    if (flipkartLink) {
+        hasLinks = true;
+        const flipkartBtn = document.createElement('a');
+        flipkartBtn.href = flipkartLink;
+        flipkartBtn.target = '_blank';
+        flipkartBtn.className = 'ecommerce-platform-btn';
+        flipkartBtn.innerHTML = `<span>Buy on Flipkart</span>`;
+        platformsContainer.appendChild(flipkartBtn);
+    }
+
+    if (meeshoLink) {
+        hasLinks = true;
+        const meeshoBtn = document.createElement('a');
+        meeshoBtn.href = meeshoLink;
+        meeshoBtn.target = '_blank';
+        meeshoBtn.className = 'ecommerce-platform-btn';
+        meeshoBtn.innerHTML = `<span>Buy on Meesho</span>`;
+        platformsContainer.appendChild(meeshoBtn);
+    }
+
+    if (!hasLinks) {
+        platformsContainer.innerHTML = '<p style="color: var(--text-secondary);">No purchase links available.</p>';
+    }
+
+    modal.classList.add('show');
+}
+
+// Setup ecommerce modal
+function setupEcommerceModal() {
+    const modal = document.getElementById('ecommerce-modal');
+    const closeBtn = document.getElementById('close-ecommerce-modal');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
         });
-    });
+    }
 
-    // View toggle buttons
-    const viewToggleButtons = document.querySelectorAll('.view-toggle-btn');
-    viewToggleButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            viewToggleButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-
-            currentView = this.getAttribute('data-view');
-            toggleView();
-        });
-    });
-
-    // Ecommerce modal
-    closeEcommerceModal.addEventListener('click', function () {
-        ecommerceModal.classList.remove('show');
-    });
-
-    // Close modal when clicking outside
-    ecommerceModal.addEventListener('click', function (e) {
-        if (e.target === ecommerceModal) {
-            ecommerceModal.classList.remove('show');
+    modal.addEventListener('click', (e) => {
+        if (e.target.id === 'ecommerce-modal') {
+            modal.classList.remove('show');
         }
     });
 }
 
-function toggleView() {
-    if (currentView === 'carousel') {
-        carouselContainer.style.display = 'block';
-        productsContainer.style.display = 'none';
-        updateCarousel();
-    } else {
-        carouselContainer.style.display = 'none';
-        productsContainer.style.display = 'grid';
-    }
-}
-
-function updateCarousel() {
-    if (!carouselContainer || currentView !== 'carousel') return;
-
-    let productsToDisplay = [];
-
-    if (currentCategory === 'all') {
-        Object.values(allProducts.categories).forEach(categoryProducts => {
-            productsToDisplay = productsToDisplay.concat(categoryProducts);
-        });
-    } else {
-        productsToDisplay = allProducts.categories[currentCategory] || [];
+// Dark mode functionality
+function setupDarkMode() {
+    const themeToggle = document.getElementById('theme-toggle-checkbox');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        if (themeToggle) themeToggle.checked = true;
     }
 
-    if (staggerCarousel) {
-        staggerCarousel.destroy();
-    }
-
-    if (productsToDisplay.length > 0) {
-        staggerCarousel = new StaggerCarousel('#carousel-container', {
-            onCardClick: (product, action) => {
-                if (action === 'buy') {
-                    openEcommerceModal(product.id);
-                }
+    if (themeToggle) {
+        themeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
             }
         });
-
-        staggerCarousel.loadProducts(productsToDisplay);
     }
 }
 
-// Show loading state
-function showLoadingState() {
-    if (productsContainer) {
-        productsContainer.innerHTML = `
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading products...</p>
+// Show empty state
+function showEmptyState() {
+    const container = document.getElementById('products-container');
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <h3>Loading Products...</h3>
+                <p>Please wait while we load our collection.</p>
             </div>
         `;
     }
 }
 
-// Show error state
-function showErrorState(message) {
-    if (productsContainer) {
-        productsContainer.innerHTML = `
-            <div class="error-state">
-                <h3>Error Loading Products</h3>
-                <p>${message}</p>
-                <button class="retry-btn" onclick="loadProducts()">Try Again</button>
-            </div>
-        `;
-    }
-}
-
-// Open ecommerce modal
-function openEcommerceModal(productId) {
-    // Find the product
-    let product = null;
-    for (const category in allProducts.categories) {
-        const foundProduct = allProducts.categories[category].find(p => p.id === productId);
-        if (foundProduct) {
-            product = foundProduct;
-            break;
-        }
-    }
-
-    if (!product) {
-        alert('Product not found');
-        return;
-    }
-
-    // Set modal title
-    ecommerceModalTitle.textContent = `Buy ${product.name}`;
-
-    // Create platform buttons
-    ecommercePlatforms.innerHTML = '';
-
-    // Add Amazon button if link exists
-    if (product.amazonLink) {
-        const amazonBtn = document.createElement("a");
-        amazonBtn.href = product.amazonLink;
-        amazonBtn.target = "_blank";
-        amazonBtn.className = "ecommerce-platform-btn amazon";
-        amazonBtn.innerHTML = `
-            <img src="amazon-logo.png" alt="Amazon">
-        `;
-        ecommercePlatforms.appendChild(amazonBtn);
-    }
-
-    // Add Flipkart button if link exists
-    if (product.flipkartLink) {
-        const flipkartBtn = document.createElement("a");
-        flipkartBtn.href = product.flipkartLink;
-        flipkartBtn.target = "_blank";
-        flipkartBtn.className = "ecommerce-platform-btn flipkart";
-        flipkartBtn.innerHTML = `
-            <img src="flipkart-logo.png" alt="Flipkart">
-        `;
-        ecommercePlatforms.appendChild(flipkartBtn);
-    }
-
-    // Add Meesho button if link exists
-    if (product.meeshoLink) {
-        const meeshoBtn = document.createElement("a");
-        meeshoBtn.href = product.meeshoLink;
-        meeshoBtn.target = "_blank";
-        meeshoBtn.className = "ecommerce-platform-btn meesho";
-        meeshoBtn.innerHTML = `
-            <img src="meesho-logo.png" alt="Meesho">
-        `;
-        ecommercePlatforms.appendChild(meeshoBtn);
-    }
-
-
-    // Show modal
-    ecommerceModal.classList.add('show');
-}
-
-// Open help modal for a specific product
-function openHelpModal(productId) {
-    // Find the product
-    let product = null;
-    for (const category in allProducts.categories) {
-        const foundProduct = allProducts.categories[category].find(p => p.id === productId);
-        if (foundProduct) {
-            product = foundProduct;
-            break;
-        }
-    }
-
-    if (!product) {
-        alert('Product not found');
-        return;
-    }
-
-    // Store the current product for the help request
-    currentProductForHelp = product;
-
-    // Create help modal if it doesn't exist
+// Show help form modal
+function showHelpFormModal(productId, productName, productSku) {
     let helpModal = document.getElementById('help-modal');
     if (!helpModal) {
         helpModal = document.createElement('div');
@@ -433,123 +401,145 @@ function openHelpModal(productId) {
         helpModal.className = 'help-modal';
         helpModal.innerHTML = `
             <div class="help-modal-content">
-                <div class="help-modal-header">
-                    <h2>How Can We Help You?</h2>
-                    <button class="close-help-modal">&times;</button>
+                <button class="close-help-modal">&times;</button>
+                <h3>Need Help with This Product?</h3>
+                <div class="help-product-info">
+                    <h4 id="help-product-name"></h4>
                 </div>
-                <div class="help-modal-body">
-                    <div class="help-product-info">
-                        <h4>Product: ${product.name}</h4>
-                        ${product.sku ? `<p>SKU: ${product.sku}</p>` : ''}
+                <form id="help-form" class="help-form">
+                    <input type="hidden" id="help-product-id" name="productId">
+                    <input type="hidden" id="help-product-sku-hidden" name="productSku">
+                    <div class="form-group">
+                        <label for="help-name">Your Name *</label>
+                        <input type="text" id="help-name" name="name" required>
                     </div>
-                    <form id="help-form" class="help-form">
-                        <div class="form-group">
-                            <label for="help-name">Your Name *</label>
-                            <input type="text" id="help-name" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="help-email">Email Address *</label>
-                            <input type="email" id="help-email" name="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="help-query">Your Query *</label>
-                            <textarea id="help-query" name="query" rows="4" required></textarea>
-                        </div>
-                        <button type="submit" class="submit-help-btn">Submit Query</button>
-                        <div id="help-form-message" class="help-form-message"></div>
-                    </form>
-                </div>
+                    <div class="form-group">
+                        <label for="help-email">Email Address *</label>
+                        <input type="email" id="help-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="help-query">Your Query *</label>
+                        <textarea id="help-query" name="query" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-help-btn">Submit Query</button>
+                </form>
+                <div id="help-form-message" class="help-form-message"></div>
             </div>
         `;
         document.body.appendChild(helpModal);
 
-        // Add event listeners
-        helpModal.querySelector('.close-help-modal').addEventListener('click', function () {
-            helpModal.classList.remove('show');
+        helpModal.querySelector('.close-help-modal').addEventListener('click', () => {
+            helpModal.style.display = 'none';
         });
 
-        helpModal.addEventListener('click', function (e) {
+        helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) {
-                helpModal.classList.remove('show');
+                helpModal.style.display = 'none';
             }
         });
 
-        // Handle form submission
-        helpModal.querySelector('#help-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-            submitHelpRequest();
-        });
-    } else {
-        // Update product info if modal already exists
-        const productInfo = helpModal.querySelector('.help-product-info');
-        productInfo.innerHTML = `
-            <h4>Product: ${product.name}</h4>
-            ${product.sku ? `<p>SKU: ${product.sku}</p>` : ''}
-        `;
+        helpModal.querySelector('#help-form').addEventListener('submit', submitHelpForm);
     }
 
-    // Show modal
-    helpModal.classList.add('show');
+    document.getElementById('help-product-id').value = productId;
+    document.getElementById('help-product-sku-hidden').value = productSku;
+    document.getElementById('help-product-name').textContent = productName;
 
-    // Clear any previous messages
-    document.getElementById('help-form-message').className = 'help-form-message';
+    document.getElementById('help-form').reset();
     document.getElementById('help-form-message').textContent = '';
+    document.getElementById('help-form-message').className = 'help-form-message';
+
+    helpModal.style.display = 'flex';
 }
 
-// Submit help request
-async function submitHelpRequest() {
-    const form = document.getElementById('help-form');
-    const name = document.getElementById('help-name').value;
-    const email = document.getElementById('help-email').value;
-    const query = document.getElementById('help-query').value;
-    const messageDiv = document.getElementById('help-form-message');
+// Submit help form
+async function submitHelpForm(e) {
+    e.preventDefault();
 
-    // Prepare data including product information
-    const requestData = {
-        name: name,
-        email: email,
-        query: query
+    const form = e.target;
+    const messageDiv = document.getElementById('help-form-message');
+    const submitBtn = form.querySelector('.submit-help-btn');
+
+    const formData = new FormData(form);
+    const data = {
+        productId: formData.get('productId'),
+        productName: document.getElementById('help-product-name').textContent,
+        productSku: formData.get('productSku'),
+        name: formData.get('name'),
+        email: formData.get('email'),
+        query: formData.get('query'),
+        timestamp: new Date().toISOString()
     };
 
-    // Add product information if available
-    if (currentProductForHelp) {
-        requestData.productId = currentProductForHelp.id;
-        requestData.productName = currentProductForHelp.name;
-        requestData.productSku = currentProductForHelp.sku || null;
-    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    messageDiv.textContent = '';
+    messageDiv.className = 'help-form-message';
 
     try {
         const response = await fetch('/api/help-request', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         });
 
         const result = await response.json();
 
-        if (result.success) {
+        if (response.ok && result.success) {
+            messageDiv.textContent = result.message;
             messageDiv.className = 'help-form-message success';
-            messageDiv.textContent = result.message;
             form.reset();
-
-            // Hide modal after 2 seconds
             setTimeout(() => {
-                document.getElementById('help-modal').classList.remove('show');
-            }, 2000);
+                document.getElementById('help-modal').style.display = 'none';
+            }, 3000);
         } else {
-            messageDiv.className = 'help-form-message error';
-            messageDiv.textContent = result.message;
+            throw new Error(result.message || 'Failed to submit query');
         }
     } catch (error) {
+        console.error('Error submitting help form:', error);
+        messageDiv.textContent = error.message || 'Sorry, there was an error submitting your query. Please try again.';
         messageDiv.className = 'help-form-message error';
-        messageDiv.textContent = 'Sorry, there was an error submitting your query. Please try again.';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Query';
     }
 }
 
-// Make functions available globally
-window.loadProducts = loadProducts;
-window.changeSlide = changeSlide;
-window.setCurrentSlide = setCurrentSlide;
-window.openHelpModal = openHelpModal;
+// Setup Scroll Animations (Lamp & Fade-in)
+function setupScrollAnimations() {
+    // Lamp Animation
+    const lampContainer = document.querySelector('.scroll-lamp-container');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+
+        if (scrollY > 100) {
+            document.body.classList.add('lamp-on');
+        } else {
+            document.body.classList.remove('lamp-on');
+        }
+
+        if (lampContainer) {
+            lampContainer.style.transform = `translateY(${scrollY * 0.1}px) rotate(${Math.sin(scrollY * 0.005) * 5}deg)`;
+        }
+    });
+
+    // Fade-in on Scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px"
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+}
