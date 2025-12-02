@@ -140,7 +140,7 @@ class StaggerCarousel {
         card.className = `stagger-card ${isCenter ? 'stagger-card-center' : ''}`;
         card.dataset.position = position;
 
-        const SQRT_5000 = Math.sqrt(5000);
+        // More horizontal spacing and smoother transitions
         const translateX = (this.cardSize / 1.5) * position;
         const translateY = isCenter ? -65 : position % 2 ? 15 : -15;
         const rotation = isCenter ? 0 : position % 2 ? 2.5 : -2.5;
