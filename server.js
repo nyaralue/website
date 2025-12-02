@@ -18,6 +18,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Product = require('./models/Product');
 const Admin = require('./models/Admin');
 const HelpRequest = require('./models/HelpRequest');
+const SKU = require('./models/SKU');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
