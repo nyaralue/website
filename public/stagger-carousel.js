@@ -159,7 +159,7 @@ class StaggerCarousel {
         const isVideo = mediaUrl && (mediaUrl.includes('.mp4') || mediaUrl.includes('.mov') || mediaUrl.includes('.avi') || mediaUrl.includes('.webm'));
 
         card.innerHTML = `
-            <span class="stagger-card-accent" style="right: -2px; top: 48px; width: ${SQRT_5000}px;"></span>
+            <span class="stagger-card-accent" style="right: -2px; top: 48px; width: ${Math.sqrt(5000)}px;"></span>
 
             <div class="stagger-card-media">
                 ${mediaUrl ? (
