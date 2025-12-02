@@ -183,6 +183,27 @@ async function initializeAdmin() {
   }
 }
 
+// Initialize Default Categories (if not exists)
+async function initializeCategories() {
+  try {
+    await connectDB();
+    const categoryCount = await Category.countDocuments();
+    if (categoryCount === 0) {
+      const defaultCategories = [
+        { name: 'light', displayName: 'Light & Lamps', icon: 'fa-lightbulb' },
+        { name: 'decors', displayName: 'Decors Showpieces', icon: 'fa-gem' },
+        { name: 'functional', displayName: 'Functional Mini Decor', icon: 'fa-box-open' },
+        { name: 'jhoomar', displayName: 'Jhoomar', icon: 'fa-star' }
+      ];
+      
+      await Category.insertMany(defaultCategories);
+      console.log('Default categories created');
+    }
+  } catch (error) {
+    console.error('Error initializing categories:', error);
+  }
+}
+
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
