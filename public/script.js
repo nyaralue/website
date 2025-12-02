@@ -40,11 +40,8 @@ function setupCategoryFilters() {
     });
 }
 
-// Staggered Carousel State
-let carouselState = {
-    products: [],
-    cardSize: 320
-};
+// Carousel instance
+let carouselInstance = null;
 
 // Display products based on current filter
 function displayProducts() {
