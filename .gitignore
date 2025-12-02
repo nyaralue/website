@@ -26,4 +26,7 @@ Thumbs.db
 *.temp
 
 # Uploads directory (can be regenerated)
-public/uploads/
+public/uploads/-e 
+# Environment files
+*.env
+*.env.*
