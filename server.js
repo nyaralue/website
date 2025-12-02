@@ -337,7 +337,7 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
 app.get('/api/categories', async (req, res) => {
   try {
     await connectDB();
-    const categories = await Product.distinct('category');
+    const categories = await Category.find().sort({ createdAt: 1 });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
