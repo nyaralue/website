@@ -523,8 +523,9 @@ app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Admin panel: http://localhost:${PORT}/admin`);
 
-  // Initialize admin if connected to DB
+  // Initialize admin and categories if connected to DB
   if (MONGODB_URI) {
     await initializeAdmin();
+    await initializeCategories();
   }
 });
