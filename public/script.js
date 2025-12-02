@@ -139,6 +139,7 @@ function createCarouselCard(product) {
     }
 
     card.innerHTML = `
+        <span class="carousel-card-line"></span>
         <div class="product-image">
             ${mediaHtml}
         </div>
@@ -190,11 +191,46 @@ function updateCarouselPositions() {
     const container = document.querySelector('.staggered-carousel-container');
     if (!container) return;
 
-    // So listeners should persist.
-    // However, we need to make sure we attach them initially.
-    // We can just call this every time to be safe, or only on init.
-    // Since we create cards once in setup, listeners are there.
-    // But we need to attach the GLOBAL listeners for modals.
+    const total = carouselState.products.length;
+
+    carouselState.products.forEach((product, index) => {
+        const card = container.querySelector(`.carousel-card[data-id="${product.tempId}"]`);
+        if (!card) return;
+
+        // Calculate position relative to center
+        const centerIndex = Math.floor(total / 2);
+        let dist = index - centerIndex;
+
+        const isCenter = dist === 0;
+
+        // Styles based on Staggered Testimonials design
+        const cardSize = carouselState.cardSize;
+
+        // Transform logic from user request:
+        // translateX(${(cardSize / 1.5) * position}px)
+        // translateY(${isCenter ? -65 : position % 2 ? 15 : -15}px)
+        // rotate(${isCenter ? 0 : position % 2 ? 2.5 : -2.5}deg)
+
+        const x = (cardSize / 1.5) * dist;
+        const y = isCenter ? -65 : (Math.abs(dist) % 2 === 1 ? 15 : -15);
+        const rotate = isCenter ? 0 : (Math.abs(dist) % 2 === 1 ? 2.5 : -2.5);
+
+        const zIndex = isCenter ? 100 : 100 - Math.abs(dist);
+        const opacity = Math.abs(dist) > 2 ? 0 : 1;
+        const pointerEvents = isCenter ? 'auto' : 'none';
+
+        card.style.transform = `translate(-50%, -50%) translateX(${x}px) translateY(${y}px) rotate(${rotate}deg)`;
+        card.style.zIndex = zIndex;
+        card.style.opacity = opacity;
+        card.style.pointerEvents = pointerEvents;
+
+        if (isCenter) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+
     attachBuyNowListeners();
 }
 
@@ -203,19 +239,6 @@ function attachBuyNowListeners() {
     // Buy Now buttons
     const buyButtons = document.querySelectorAll('.buy-now-btn');
     buyButtons.forEach(btn => {
-        // Remove old listeners to avoid duplicates? 
-        // Cloning node is a cheap way to wipe listeners
-        // btn.replaceWith(btn.cloneNode(true)); 
-        // But we need to re-select.
-
-        // Better: just ensure we don't double attach.
-        // For now, let's assume simple addEventListener is fine if we are careful.
-        // Actually, since we re-create cards in setupStaggeredCarousel, we need to attach there.
-        // But updateCarouselPositions doesn't recreate cards.
-
-        // Let's just attach listeners in createCarouselCard? 
-        // No, because we need the global functions like showEcommerceModal.
-
         btn.onclick = (e) => {
             e.stopPropagation(); // Prevent card click
             const amazonLink = btn.dataset.amazonLink;
@@ -386,108 +409,66 @@ function showHelpFormModal(productId, productName, productSku) {
             }
         });
 
-        helpModal.querySelector('#help-form').addEventListener('submit', submitHelpForm);
+        const form = helpModal.querySelector('#help-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            const messageDiv = document.getElementById('help-form-message');
+
+            messageDiv.textContent = 'Sending...';
+            messageDiv.className = 'help-form-message';
+
+            try {
+                const response = await fetch(`${API_BASE}/help-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = 'Query sent successfully! We will contact you soon.';
+                    messageDiv.classList.add('success');
+                    form.reset();
+                    setTimeout(() => {
+                        helpModal.style.display = 'none';
+                        messageDiv.textContent = '';
+                        messageDiv.classList.remove('success');
+                    }, 2000);
+                } else {
+                    throw new Error(result.message || 'Failed to send query');
+                }
+            } catch (error) {
+                console.error('Error sending help query:', error);
+                messageDiv.textContent = 'Error: ' + error.message;
+                messageDiv.classList.add('error');
+            }
+        });
     }
 
-    document.getElementById('help-product-id').value = productId;
-    document.getElementById('help-product-sku-hidden').value = productSku;
     document.getElementById('help-product-name').textContent = productName;
-
-    document.getElementById('help-form').reset();
-    document.getElementById('help-form-message').textContent = '';
-    document.getElementById('help-form-message').className = 'help-form-message';
+    document.getElementById('help-product-id').value = productId;
+    document.getElementById('help-product-sku-hidden').value = productSku || '';
 
     helpModal.style.display = 'flex';
 }
 
-// Submit help form
-async function submitHelpForm(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    const messageDiv = document.getElementById('help-form-message');
-    const submitBtn = form.querySelector('.submit-help-btn');
-
-    const formData = new FormData(form);
-    const data = {
-        productId: formData.get('productId'),
-        productName: document.getElementById('help-product-name').textContent,
-        productSku: formData.get('productSku'),
-        name: formData.get('name'),
-        email: formData.get('email'),
-        query: formData.get('query'),
-        timestamp: new Date().toISOString()
-    };
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-    messageDiv.textContent = '';
-    messageDiv.className = 'help-form-message';
-
-    try {
-        const response = await fetch('/api/help-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            messageDiv.textContent = result.message;
-            messageDiv.className = 'help-form-message success';
-            form.reset();
-            setTimeout(() => {
-                document.getElementById('help-modal').style.display = 'none';
-            }, 3000);
-        } else {
-            throw new Error(result.message || 'Failed to submit query');
-        }
-    } catch (error) {
-        console.error('Error submitting help form:', error);
-        messageDiv.textContent = error.message || 'Sorry, there was an error submitting your query. Please try again.';
-        messageDiv.className = 'help-form-message error';
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Query';
-    }
-}
-
-// Setup Scroll Animations (Lamp & Fade-in)
 function setupScrollAnimations() {
-    // Lamp Animation
-    const lampContainer = document.querySelector('.scroll-lamp-container');
-
-    window.addEventListener('scroll', () => {
-        const scrollY = window.scrollY;
-
-        if (scrollY > 100) {
-            document.body.classList.add('lamp-on');
-        } else {
-            document.body.classList.remove('lamp-on');
-        }
-
-        if (lampContainer) {
-            lampContainer.style.transform = `translateY(${scrollY * 0.1}px) rotate(${Math.sin(scrollY * 0.005) * 5}deg)`;
-        }
-    });
-
-    // Fade-in on Scroll
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px"
-    };
-
+    // Simple scroll animation for elements
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                observer.unobserve(entry.target);
+                entry.target.classList.add('visible');
             }
         });
-    }, observerOptions);
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+    document.querySelectorAll('.product-card, .section-title').forEach(el => {
+        el.classList.add('fade-in-up');
         observer.observe(el);
     });
 }
