@@ -90,6 +90,117 @@ class StaggerCarousel {
             if (e.key === 'ArrowLeft') this.move(-1);
             if (e.key === 'ArrowRight') this.move(1);
         });
+
+        // Add drag and swipe functionality
+        this.setupDragAndSwipe();
+    }
+
+    setupDragAndSwipe() {
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
+        let startTime = 0;
+
+        // Touch events for mobile
+        this.track.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            startTime = Date.now();
+            isDragging = true;
+        }, { passive: true });
+
+        this.track.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const diffX = Math.abs(currentX - startX);
+            const diffY = Math.abs(currentY - startY);
+            
+            // Prevent vertical scrolling if horizontal swipe is detected
+            if (diffX > diffY && diffX > 10) {
+                e.preventDefault();
+            }
+        });
+
+        this.track.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            
+            const endX = e.changedTouches[0].clientX;
+            const endTime = Date.now();
+            const diffX = startX - endX;
+            const diffTime = endTime - startTime;
+            const velocity = Math.abs(diffX) / diffTime;
+            
+            // Swipe threshold: 50px or fast swipe
+            if (Math.abs(diffX) > 50 || velocity > 0.5) {
+                if (diffX > 0) {
+                    this.move(1); // Swipe left - next
+                } else {
+                    this.move(-1); // Swipe right - previous
+                }
+            }
+            
+            isDragging = false;
+        });
+
+        // Mouse events for desktop
+        let isMouseDown = false;
+        
+        this.track.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startTime = Date.now();
+            isMouseDown = true;
+            isDragging = false;
+            this.track.style.cursor = 'grabbing';
+        });
+
+        this.track.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            
+            const currentX = e.clientX;
+            const diffX = Math.abs(currentX - startX);
+            
+            // Consider it dragging if moved more than 5px
+            if (diffX > 5) {
+                isDragging = true;
+            }
+        });
+
+        this.track.addEventListener('mouseup', (e) => {
+            if (!isMouseDown) return;
+            
+            const endX = e.clientX;
+            const endTime = Date.now();
+            const diffX = startX - endX;
+            const diffTime = endTime - startTime;
+            const velocity = Math.abs(diffX) / diffTime;
+            
+            // Drag threshold: 80px or fast drag
+            if (isDragging && (Math.abs(diffX) > 80 || velocity > 0.3)) {
+                if (diffX > 0) {
+                    this.move(1); // Drag left - next
+                } else {
+                    this.move(-1); // Drag right - previous
+                }
+            }
+            
+            isMouseDown = false;
+            isDragging = false;
+            this.track.style.cursor = 'grab';
+        });
+
+        this.track.addEventListener('mouseleave', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                isDragging = false;
+                this.track.style.cursor = 'grab';
+            }
+        });
+
+        // Set initial cursor
+        this.track.style.cursor = 'grab';
+        this.track.style.userSelect = 'none';
     }
 
     loadProducts(products) {
