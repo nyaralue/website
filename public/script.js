@@ -2,6 +2,7 @@
 
 // DOM Elements
 const productsContainer = document.getElementById('products-container');
+const carouselContainer = document.getElementById('carousel-container');
 const filterButtons = document.querySelectorAll('.filter-btn');
 const categoryFilter = document.getElementById('category-filter');
 const ecommerceModal = document.getElementById('ecommerce-modal');
@@ -12,7 +13,9 @@ const ecommerceModalTitle = document.getElementById('ecommerce-modal-title');
 // Global variables
 let allProducts = { categories: {} };
 let currentCategory = 'all';
-let currentProductForHelp = null; // Track which product the help request is for
+let currentProductForHelp = null;
+let currentView = 'carousel';
+let staggerCarousel = null; // Track which product the help request is for
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function () {
@@ -32,6 +35,7 @@ async function loadProducts() {
 
         allProducts = await response.json();
         displayProducts();
+        updateCarousel();
     } catch (error) {
         console.error('Error loading products:', error);
         showErrorState('Failed to load products. Please try again later.');
@@ -242,6 +246,19 @@ function setupEventListeners() {
             // Update category and display products
             currentCategory = this.getAttribute('data-category');
             displayProducts();
+            updateCarousel();
+        });
+    });
+
+    // View toggle buttons
+    const viewToggleButtons = document.querySelectorAll('.view-toggle-btn');
+    viewToggleButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            viewToggleButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+
+            currentView = this.getAttribute('data-view');
+            toggleView();
         });
     });
 
@@ -256,6 +273,47 @@ function setupEventListeners() {
             ecommerceModal.classList.remove('show');
         }
     });
+}
+
+function toggleView() {
+    if (currentView === 'carousel') {
+        carouselContainer.style.display = 'block';
+        productsContainer.style.display = 'none';
+        updateCarousel();
+    } else {
+        carouselContainer.style.display = 'none';
+        productsContainer.style.display = 'grid';
+    }
+}
+
+function updateCarousel() {
+    if (!carouselContainer || currentView !== 'carousel') return;
+
+    let productsToDisplay = [];
+
+    if (currentCategory === 'all') {
+        Object.values(allProducts.categories).forEach(categoryProducts => {
+            productsToDisplay = productsToDisplay.concat(categoryProducts);
+        });
+    } else {
+        productsToDisplay = allProducts.categories[currentCategory] || [];
+    }
+
+    if (staggerCarousel) {
+        staggerCarousel.destroy();
+    }
+
+    if (productsToDisplay.length > 0) {
+        staggerCarousel = new StaggerCarousel('#carousel-container', {
+            onCardClick: (product, action) => {
+                if (action === 'buy') {
+                    openEcommerceModal(product.id);
+                }
+            }
+        });
+
+        staggerCarousel.loadProducts(productsToDisplay);
+    }
 }
 
 // Show loading state

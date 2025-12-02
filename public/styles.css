@@ -373,6 +373,37 @@ body {
     border-color: var(--deep-olive);
 }
 
+.view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 2rem 0 1rem 0;
+}
+
+.view-toggle-btn {
+    padding: 0.6rem 1.2rem;
+    background-color: var(--card-bg);
+    border: 2px solid var(--muted-moss);
+    color: var(--text-primary);
+    font-family: 'Lato', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.view-toggle-btn:hover {
+    background-color: var(--soft-stone);
+    border-color: var(--deep-olive);
+}
+
+.view-toggle-btn.active {
+    background-color: var(--deep-olive);
+    color: var(--warm-off-white);
+    border-color: var(--deep-olive);
+}
+
 /* Products Grid */
 .products-grid {
     display: grid;

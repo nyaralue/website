@@ -1,0 +1,287 @@
+.stagger-carousel-wrapper {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border-radius: 12px;
+    margin: 2rem 0;
+}
+
+.stagger-carousel-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.stagger-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    cursor: pointer;
+    border: 2px solid var(--muted-moss);
+    padding: 2rem;
+    transition: all 0.5s ease-in-out;
+    background: var(--warm-off-white);
+    color: var(--text-primary);
+    clip-path: polygon(50px 0%, calc(100% - 50px) 0%, 100% 50px, 100% 100%, calc(100% - 50px) 100%, 50px 100%, 0 100%, 0 0);
+    display: flex;
+    flex-direction: column;
+}
+
+.stagger-card:hover:not(.stagger-card-center) {
+    border-color: var(--deep-olive);
+}
+
+.stagger-card-center {
+    z-index: 10;
+    background: var(--deep-olive);
+    color: var(--warm-off-white);
+    border-color: var(--deep-olive);
+    box-shadow: 0px 8px 0px 4px var(--muted-moss);
+}
+
+.stagger-card-accent {
+    position: absolute;
+    display: block;
+    height: 2px;
+    background: var(--muted-moss);
+    transform: rotate(45deg);
+    transform-origin: top right;
+}
+
+.stagger-card-center .stagger-card-accent {
+    background: var(--taupe-sand);
+}
+
+.stagger-card-media {
+    width: 100%;
+    height: 180px;
+    background: var(--soft-stone);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 3px 3px 0px var(--muted-moss);
+}
+
+.stagger-card-center .stagger-card-media {
+    box-shadow: 3px 3px 0px var(--taupe-sand);
+}
+
+.stagger-card-media img,
+.stagger-card-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.stagger-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-moss);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.stagger-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stagger-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+    color: inherit;
+}
+
+.stagger-card-center .stagger-card-title {
+    color: var(--warm-off-white);
+}
+
+.stagger-card-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--deep-olive);
+    margin: 0.25rem 0;
+}
+
+.stagger-card-center .stagger-card-price {
+    color: var(--taupe-sand);
+}
+
+.stagger-card-sku {
+    font-size: 0.85rem;
+    color: var(--muted-moss);
+    margin: 0;
+    font-style: italic;
+}
+
+.stagger-card-center .stagger-card-sku {
+    color: var(--soft-stone);
+}
+
+.stagger-card-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.stagger-card-buy-btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: var(--deep-olive);
+    color: var(--warm-off-white);
+    border: 2px solid var(--deep-olive);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    font-family: 'Lato', sans-serif;
+}
+
+.stagger-card-buy-btn:hover {
+    background: var(--muted-moss);
+    border-color: var(--muted-moss);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.stagger-card-center .stagger-card-buy-btn {
+    background: var(--taupe-sand);
+    border-color: var(--taupe-sand);
+    color: var(--deep-olive);
+}
+
+.stagger-card-center .stagger-card-buy-btn:hover {
+    background: var(--warm-off-white);
+    border-color: var(--warm-off-white);
+}
+
+.stagger-carousel-controls {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 20;
+}
+
+.stagger-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: var(--warm-off-white);
+    border: 2px solid var(--muted-moss);
+    color: var(--deep-olive);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.5rem;
+    border-radius: 4px;
+}
+
+.stagger-nav-btn:hover {
+    background: var(--deep-olive);
+    color: var(--warm-off-white);
+    border-color: var(--deep-olive);
+    transform: scale(1.05);
+}
+
+.stagger-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.stagger-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.stagger-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--muted-moss);
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .stagger-carousel-wrapper {
+        height: 500px;
+    }
+
+    .stagger-card {
+        padding: 1.5rem;
+    }
+
+    .stagger-card-media {
+        height: 140px;
+    }
+
+    .stagger-card-title {
+        font-size: 1.1rem;
+    }
+
+    .stagger-card-price {
+        font-size: 1rem;
+    }
+
+    .stagger-card-sku {
+        font-size: 0.75rem;
+    }
+
+    .stagger-card-buy-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
+    .stagger-nav-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .stagger-nav-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .stagger-carousel-controls {
+        bottom: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stagger-carousel-wrapper {
+        height: 450px;
+    }
+
+    .stagger-card {
+        padding: 1.25rem;
+    }
+
+    .stagger-card-media {
+        height: 120px;
+    }
+
+    .stagger-card-title {
+        font-size: 1rem;
+    }
+
+    .stagger-nav-btn {
+        width: 44px;
+        height: 44px;
+    }
+}

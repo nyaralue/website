@@ -13,6 +13,7 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="stagger-carousel.css">
 </head>
 
 <body>
@@ -61,7 +62,14 @@
                     <button class="filter-btn" data-category="functional">Functional Mini Decor</button>
                 </div>
 
-                <div id="products-container" class="products-grid">
+                <div class="view-toggle">
+                    <button class="view-toggle-btn active" data-view="carousel">Carousel View</button>
+                    <button class="view-toggle-btn" data-view="grid">Grid View</button>
+                </div>
+
+                <div id="carousel-container"></div>
+
+                <div id="products-container" class="products-grid" style="display: none;">
                     <!-- Products will be loaded here -->
                 </div>
             </div>
@@ -100,6 +108,7 @@
         </div>
     </footer>
 
+    <script src="stagger-carousel.js"></script>
     <script src="script.js"></script>
 </body>
 
