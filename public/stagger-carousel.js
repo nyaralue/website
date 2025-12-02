@@ -46,7 +46,12 @@ class StaggerCarousel {
                         </svg>
                     </button>
                 </div>
-                <div class="view-all-products-container" style="text-align: center; margin-top: 3rem;">
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; font-style: italic;">
+                        <i class="fas fa-hand-pointer"></i> Drag or swipe to browse
+                    </p>
+                </div>
+                <div class="view-all-products-container" style="text-align: center; margin-top: 1rem;">
                     <a href="/products-grid.html" class="view-all-products-btn" style="display: inline-block; padding: 1rem 2.5rem; background: var(--deep-olive); color: var(--warm-off-white); text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(70, 76, 60, 0.2);">
                         <i class="fas fa-th" style="margin-right: 0.5rem;"></i> View All Products
                     </a>
