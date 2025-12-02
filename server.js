@@ -344,6 +344,111 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+// Add new category (Admin only)
+app.post('/api/categories', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const { name, displayName, icon } = req.body;
+
+    if (!name || !displayName) {
+      return res.status(400).json({ error: 'Name and display name are required' });
+    }
+
+    // Check if category already exists
+    const existing = await Category.findOne({ name: name.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ error: 'Category already exists' });
+    }
+
+    const category = new Category({
+      name: name.toLowerCase(),
+      displayName,
+      icon: icon || 'fa-box'
+    });
+
+    await category.save();
+    res.json({ message: 'Category added successfully', category });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to add category' });
+  }
+});
+
+// SKU Management APIs
+
+// Get all SKUs
+app.get('/api/skus', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const skus = await SKU.find().sort({ createdAt: -1 });
+    res.json(skus);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch SKUs' });
+  }
+});
+
+// Get available (unassigned) SKUs
+app.get('/api/skus/available', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const skus = await SKU.find({ isAssigned: false }).sort({ createdAt: -1 });
+    res.json(skus);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch available SKUs' });
+  }
+});
+
+// Add new SKU (Admin only)
+app.post('/api/skus', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const { skuId, description } = req.body;
+
+    if (!skuId) {
+      return res.status(400).json({ error: 'SKU ID is required' });
+    }
+
+    // Check if SKU already exists
+    const existing = await SKU.findOne({ skuId });
+    if (existing) {
+      return res.status(400).json({ error: 'SKU ID already exists' });
+    }
+
+    const sku = new SKU({
+      skuId,
+      description: description || '',
+      isAssigned: false
+    });
+
+    await sku.save();
+    res.json({ message: 'SKU added successfully', sku });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to add SKU' });
+  }
+});
+
+// Update SKU assignment status
+app.put('/api/skus/:skuId/assign', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const { skuId } = req.params;
+    const { productId, isAssigned } = req.body;
+
+    const sku = await SKU.findOne({ skuId });
+    if (!sku) {
+      return res.status(404).json({ error: 'SKU not found' });
+    }
+
+    sku.isAssigned = isAssigned;
+    sku.assignedToProduct = isAssigned ? productId : null;
+    await sku.save();
+
+    res.json({ message: 'SKU updated successfully', sku });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update SKU' });
+  }
+});
 // Serve admin panel
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
