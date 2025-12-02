@@ -1,0 +1,360 @@
+/* Modern Image-Focused Carousel */
+.stagger-carousel-wrapper {
+    position: relative;
+    width: 100%;
+    height: 700px;
+    overflow: visible;
+    background: transparent;
+    margin: 3rem 0;
+    padding: 2rem 0;
+}
+
+.stagger-carousel-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.stagger-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    cursor: pointer;
+    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    border: none;
+    padding: 0;
+    filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.15));
+}
+
+.stagger-card:hover:not(.stagger-card-center) {
+    filter: drop-shadow(0 15px 50px rgba(0, 0, 0, 0.25));
+}
+
+.stagger-card-center {
+    z-index: 10;
+    filter: drop-shadow(0 20px 60px rgba(70, 76, 60, 0.4));
+}
+
+/* Remove accent line */
+.stagger-card-accent {
+    display: none;
+}
+
+/* Large Image - Main Focus */
+.stagger-card-media {
+    width: 100%;
+    height: 450px;
+    background: #f5f5f5;
+    overflow: hidden;
+    border-radius: 20px;
+    position: relative;
+}
+
+.stagger-card-center .stagger-card-media {
+    height: 500px;
+    border-radius: 24px;
+}
+
+.stagger-card-media img,
+.stagger-card-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.7s ease;
+}
+
+.stagger-card:hover .stagger-card-media img,
+.stagger-card:hover .stagger-card-media video {
+    transform: scale(1.05);
+}
+
+.stagger-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-moss);
+    font-size: 3rem;
+    background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
+}
+
+/* Minimal Details Overlay */
+.stagger-card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.stagger-card-center .stagger-card-content {
+    opacity: 1;
+    border-radius: 0 0 24px 24px;
+    padding: 2rem;
+}
+
+.stagger-card:hover .stagger-card-content {
+    opacity: 1;
+}
+
+.stagger-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stagger-card-center .stagger-card-title {
+    font-size: 1.6rem;
+}
+
+.stagger-card-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--taupe-sand);
+    margin: 0;
+}
+
+.stagger-card-center .stagger-card-price {
+    font-size: 1.4rem;
+    color: #ffd700;
+}
+
+.stagger-card-sku {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    font-style: italic;
+}
+
+/* Buy Button - Minimal */
+.stagger-card-footer {
+    margin-top: 0.8rem;
+}
+
+.stagger-card-buy-btn {
+    width: 100%;
+    padding: 0.8rem 1.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--deep-olive);
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    font-family: 'Lato', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stagger-card-buy-btn:hover {
+    background: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+.stagger-card-center .stagger-card-buy-btn {
+    background: var(--taupe-sand);
+    color: #ffffff;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+}
+
+.stagger-card-center .stagger-card-buy-btn:hover {
+    background: #d4b896;
+    transform: translateY(-3px);
+}
+
+/* Navigation Controls - Modern */
+.stagger-carousel-controls {
+    position: absolute;
+    bottom: -4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1.5rem;
+    z-index: 20;
+}
+
+.stagger-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    color: var(--deep-olive);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stagger-nav-btn:hover {
+    background: var(--deep-olive);
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(70, 76, 60, 0.3);
+}
+
+.stagger-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.stagger-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.stagger-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--muted-moss);
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stagger-carousel-wrapper {
+        height: 600px;
+    }
+
+    .stagger-card-media {
+        height: 380px;
+    }
+
+    .stagger-card-center .stagger-card-media {
+        height: 420px;
+    }
+
+    .stagger-card-title {
+        font-size: 1.2rem;
+    }
+
+    .stagger-card-center .stagger-card-title {
+        font-size: 1.4rem;
+    }
+
+    .stagger-card-price {
+        font-size: 1.1rem;
+    }
+
+    .stagger-card-buy-btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.85rem;
+    }
+
+    .stagger-nav-btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    .stagger-carousel-controls {
+        bottom: -3.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .stagger-carousel-wrapper {
+        height: 500px;
+        margin: 2rem 0;
+    }
+
+    .stagger-card-media {
+        height: 320px;
+        border-radius: 16px;
+    }
+
+    .stagger-card-center .stagger-card-media {
+        height: 360px;
+        border-radius: 18px;
+    }
+
+    .stagger-card-content {
+        padding: 1rem;
+    }
+
+    .stagger-card-center .stagger-card-content {
+        padding: 1.5rem;
+    }
+
+    .stagger-card-title {
+        font-size: 1.1rem;
+    }
+
+    .stagger-card-center .stagger-card-title {
+        font-size: 1.3rem;
+    }
+
+    .stagger-card-price {
+        font-size: 1rem;
+    }
+
+    .stagger-card-sku {
+        font-size: 0.7rem;
+    }
+
+    .stagger-card-buy-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    .stagger-nav-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .stagger-nav-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .stagger-carousel-controls {
+        bottom: -3rem;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stagger-carousel-wrapper {
+        height: 450px;
+    }
+
+    .stagger-card-media {
+        height: 280px;
+    }
+
+    .stagger-card-center .stagger-card-media {
+        height: 320px;
+    }
+
+    .stagger-card-title {
+        font-size: 1rem;
+    }
+
+    .stagger-nav-btn {
+        width: 44px;
+        height: 44px;
+    }
+}
