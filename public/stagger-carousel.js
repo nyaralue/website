@@ -57,6 +57,21 @@ class StaggerCarousel {
         this.track = this.container.querySelector('.stagger-carousel-track');
         this.prevBtn = this.container.querySelector('.stagger-nav-prev');
         this.nextBtn = this.container.querySelector('.stagger-nav-next');
+        
+        // Add hover effect to view all button
+        const viewAllBtn = this.container.querySelector('.view-all-products-btn');
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener('mouseenter', () => {
+                viewAllBtn.style.background = 'var(--muted-moss)';
+                viewAllBtn.style.transform = 'translateY(-3px)';
+                viewAllBtn.style.boxShadow = '0 6px 20px rgba(70, 76, 60, 0.3)';
+            });
+            viewAllBtn.addEventListener('mouseleave', () => {
+                viewAllBtn.style.background = 'var(--deep-olive)';
+                viewAllBtn.style.transform = 'translateY(0)';
+                viewAllBtn.style.boxShadow = '0 4px 15px rgba(70, 76, 60, 0.2)';
+            });
+        }
     }
 
     setupEventListeners() {
