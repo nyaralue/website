@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Products - Nyara Luxe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Grid View Specific Styles */
+        .products-grid-page {
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .product-grid-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+        }
+
+        .product-grid-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(70, 76, 60, 0.15);
+        }
+
+        .product-grid-image {
+            width: 100%;
+            height: 280px;
+            overflow: hidden;
+            background: var(--soft-stone);
+            position: relative;
+        }
+
+        .product-grid-image img,
+        .product-grid-image video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .product-grid-card:hover .product-grid-image img,
+        .product-grid-card:hover .product-grid-image video {
+            transform: scale(1.1);
+        }
+
+        .product-grid-info {
+            padding: 1.5rem;
+        }
+
+        .product-grid-category {
+            font-size: 0.75rem;
+            color: var(--muted-moss);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-grid-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .product-grid-sku {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-style: italic;
+        }
+
+        .product-grid-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--deep-olive);
+            margin-bottom: 1rem;
+        }
+
+        .product-grid-buy-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--deep-olive);
+            color: var(--warm-off-white);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .product-grid-buy-btn:hover {
+            background: var(--muted-moss);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(70, 76, 60, 0.3);
+        }
+
+        .back-to-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--deep-olive);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: gap 0.3s ease;
+        }
+
+        .back-to-home:hover {
+            gap: 1rem;
+        }
+
+        .no-products-message {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .no-products-message i {
+            font-size: 4rem;
+            color: var(--muted-moss);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .product-grid-image {
+                height: 220px;
+            }
+
+            .product-grid-info {
+                padding: 1.2rem;
+            }
+
+            .product-grid-name {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="Nyara_Home_Visiting_Card-removebg-preview.png" alt="Nyara Luxe Logo" class="logo-image">
+                <div class="logo-text">
+                    <h1>NYARA</h1>
+                    <p>LUXE</p>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
+                <a href="products-grid.html" class="nav-link active"><i class="fas fa-couch"></i> Products</a>
+                <div class="theme-toggle">
+                    <input type="checkbox" id="theme-toggle-checkbox" class="theme-toggle-checkbox">
+                    <label for="theme-toggle-checkbox" class="theme-toggle-label">
+                        <i class="fas fa-moon"></i>
+                        <i class="fas fa-sun"></i>
+                    </label>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="products-grid-page">
+        <div class="container">
+            <a href="/" class="back-to-home">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
+
+            <h2 class="section-title">All Products</h2>
+
+            <div class="category-filter animate-on-scroll">
+                <button class="filter-btn active" data-category="all"><i class="fas fa-th-large"></i> All
+                    Products</button>
+                <!-- Categories will be loaded dynamically -->
+            </div>
+
+            <div id="products-grid" class="products-grid">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Ecommerce Modal -->
+    <div id="ecommerce-modal" class="ecommerce-modal">
+        <div class="ecommerce-modal-content">
+            <button class="close-ecommerce-modal" id="close-ecommerce-modal">&times;</button>
+            <h3 id="ecommerce-modal-title">Select Platform</h3>
+            <div id="ecommerce-platforms" class="ecommerce-platforms">
+                <!-- Platforms will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Nyara Luxe</h3>
+                    <p>Premium interior design solutions for modern living.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Us</h4>
+                    <p><i class="fas fa-map-marker-alt"></i> F-65, Lane 3, Rajouri Garden, New Delhi, 110027</p>
+                    <p><i class="fas fa-phone"></i> +91-9783597547</p>
+                    <p><i class="fas fa-phone"></i> +91-9079152336</p>
+                    <p><i class="fas fa-envelope"></i> contact@nyaraluxe.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Nyara Luxe. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="products-grid.js"></script>
+</body>
+
+</html>
