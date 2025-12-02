@@ -6,7 +6,7 @@ class StaggerCarousel {
             return;
         }
 
-        this.cardSize = window.innerWidth >= 640 ? 365 : 290;
+        this.cardSize = window.innerWidth >= 1024 ? 420 : window.innerWidth >= 640 ? 360 : 300;
         this.products = [];
         this.currentIndex = 0;
         this.isAnimating = false;
