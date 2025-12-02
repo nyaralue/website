@@ -19,6 +19,7 @@ const Product = require('./models/Product');
 const Admin = require('./models/Admin');
 const HelpRequest = require('./models/HelpRequest');
 const SKU = require('./models/SKU');
+const Category = require('./models/Category');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
