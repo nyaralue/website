@@ -149,7 +149,7 @@ class StaggerCarousel {
 
         card.style.cssText = `
             width: ${this.cardSize}px;
-            height: ${this.cardSize}px;
+            height: auto;
             transform: translate(-50%, -50%) translateX(${translateX}px) translateY(${translateY}px) rotate(${rotation}deg);
             z-index: ${isCenter ? 10 : 0};
         `;
