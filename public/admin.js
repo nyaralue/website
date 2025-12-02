@@ -778,3 +778,218 @@ document.getElementById('product-modal').addEventListener('click', (e) => {
     }
 });
 
+
+// ===== Category Management =====
+
+function setupManagementButtons() {
+    // Category Management Button
+    document.getElementById('manage-categories-btn').addEventListener('click', () => {
+        openCategoryModal();
+    });
+
+    // SKU Management Button
+    document.getElementById('manage-skus-btn').addEventListener('click', () => {
+        openSKUModal();
+    });
+
+    // Close modals
+    document.getElementById('close-category-modal').addEventListener('click', closeCategoryModal);
+    document.getElementById('close-sku-modal').addEventListener('click', closeSKUModal);
+
+    // Add Category Form
+    document.getElementById('add-category-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addCategory(e);
+    });
+
+    // Add SKU Form
+    document.getElementById('add-sku-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addSKU(e);
+    });
+}
+
+// Load Categories from Database
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_BASE}/categories`);
+        const categories = await response.json();
+        
+        // Populate category dropdown
+        const dropdown = document.getElementById('category-dropdown');
+        dropdown.innerHTML = '';
+        
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.name;
+            option.textContent = cat.displayName;
+            dropdown.appendChild(option);
+        });
+
+        // Set current category to first one if not set
+        if (!currentCategory && categories.length > 0) {
+            currentCategory = categories[0].name;
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        showNotification('Error loading categories', 'error');
+    }
+}
+
+function openCategoryModal() {
+    document.getElementById('category-modal').style.display = 'flex';
+    loadCategoriesList();
+}
+
+function closeCategoryModal() {
+    document.getElementById('category-modal').style.display = 'none';
+    document.getElementById('category-form-error').textContent = '';
+    document.getElementById('add-category-form').reset();
+}
+
+async function loadCategoriesList() {
+    try {
+        const response = await fetch(`${API_BASE}/categories`);
+        const categories = await response.json();
+        
+        const container = document.getElementById('categories-list');
+        
+        if (categories.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999;">No categories yet.</p>';
+            return;
+        }
+        
+        container.innerHTML = categories.map(cat => `
+            <div class="category-item">
+                <div class="category-info">
+                    <div class="category-icon">
+                        <i class="fas ${cat.icon}"></i>
+                    </div>
+                    <div class="category-details">
+                        <h4>${cat.displayName}</h4>
+                        <p>ID: ${cat.name}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading categories list:', error);
+    }
+}
+
+async function addCategory(e) {
+    const errorDiv = document.getElementById('category-form-error');
+    errorDiv.textContent = '';
+    
+    const formData = new FormData(e.target);
+    const categoryData = {
+        name: formData.get('name').toLowerCase().trim(),
+        displayName: formData.get('displayName').trim(),
+        icon: formData.get('icon').trim() || 'fa-box'
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE}/categories`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(categoryData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Category added successfully!', 'success');
+            e.target.reset();
+            loadCategoriesList();
+            loadCategories(); // Refresh dropdown
+        } else {
+            errorDiv.textContent = data.error || 'Failed to add category';
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+    }
+}
+
+// ===== SKU Management =====
+
+function openSKUModal() {
+    document.getElementById('sku-modal').style.display = 'flex';
+    loadSKUsList();
+}
+
+function closeSKUModal() {
+    document.getElementById('sku-modal').style.display = 'none';
+    document.getElementById('sku-form-error').textContent = '';
+    document.getElementById('add-sku-form').reset();
+}
+
+async function loadSKUsList() {
+    try {
+        const response = await fetch(`${API_BASE}/skus`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        const skus = await response.json();
+        
+        const container = document.getElementById('skus-list');
+        
+        if (skus.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999;">No SKUs yet.</p>';
+            return;
+        }
+        
+        container.innerHTML = skus.map(sku => `
+            <div class="sku-item ${sku.isAssigned ? 'assigned' : ''}">
+                <div class="sku-info">
+                    <h4>${sku.skuId}</h4>
+                    ${sku.description ? `<p>${sku.description}</p>` : ''}
+                    ${sku.isAssigned && sku.assignedToProduct ? `<p style="font-size: 0.75rem; color: #f57c00;">Assigned to: ${sku.assignedToProduct}</p>` : ''}
+                </div>
+                <span class="sku-status ${sku.isAssigned ? 'assigned' : 'available'}">
+                    ${sku.isAssigned ? 'Assigned' : 'Available'}
+                </span>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading SKUs list:', error);
+    }
+}
+
+async function addSKU(e) {
+    const errorDiv = document.getElementById('sku-form-error');
+    errorDiv.textContent = '';
+    
+    const formData = new FormData(e.target);
+    const skuData = {
+        skuId: formData.get('skuId').trim().toUpperCase(),
+        description: formData.get('description').trim()
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE}/skus`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(skuData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('SKU added successfully!', 'success');
+            e.target.reset();
+            loadSKUsList();
+        } else {
+            errorDiv.textContent = data.error || 'Failed to add SKU';
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+    }
+}
+
