@@ -56,60 +56,124 @@
                 <h2 class="section-title">Our Collection</h2>
 
                 <div class="category-filter">
-                    <button class="filter-btn active" data-category="all">All Products</button>
-                    <button class="filter-btn" data-category="light">Light & Lamps</button>
-                    <button class="filter-btn" data-category="decors">Decors Showpieces</button>
-                    <button class="filter-btn" data-category="functional">Functional Mini Decor</button>
-                </div>
+                    <div id="ecommerce-modal" class="ecommerce-modal">
+                        <div class="ecommerce-modal-content" style="position: relative;">
+                            <button class="close-ecommerce-modal" id="close-ecommerce-modal">&times;</button>
+                            <h3 id="ecommerce-modal-title">Select Platform</h3>
+                            <div id="ecommerce-platforms" class="ecommerce-platforms">
+                                <!-- Platforms will be added here -->
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" data-view="carousel">Carousel View</button>
-                    <button class="view-toggle-btn" data-view="grid">Grid View</button>
-                </div>
+                    <footer class="footer">
+                        <div class="container">
+                            <div class="footer-content">
+                                <div class="footer-section">
+                                    <h3>Nyara Luxe</h3>
+                                    <p>Premium interior design solutions</p>
+                                </div>
+                                <div class="footer-section">
+                                    <h4>Contact</h4>
+                                    <p>F-65, Lane 3, Rajouri Garden</p>
+                                    <p>New Delhi, 110027</p>
+                                    <p>+91-9783597547</p>
+                                    <p>+91-9079152336</p>
+                                </div>
+                            </div>
+                            <!DOCTYPE html>
+                            <html lang="en">
 
-                <div id="carousel-container"></div>
+                            <head>
+                                <meta charset="UTF-8">
+                                <meta name="viewport"
+                                    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                <meta name="mobile-web-app-capable" content="yes">
+                                <meta name="apple-mobile-web-app-title" content="Nyara Luxe">
+                                <title>Nyara Luxe - Premium Interior Design</title>
+                                <link rel="preconnect" href="https://fonts.googleapis.com">
+                                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                                <link
+                                    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap"
+                                    rel="stylesheet">
+                                <link rel="stylesheet" href="styles.css">
+                            </head>
 
-                <div id="products-container" class="products-grid" style="display: none;">
-                    <!-- Products will be loaded here -->
-                </div>
-            </div>
-        </section>
-    </main>
+                            <body>
+                                <header class="header">
+                                    <div class="container">
+                                        <div class="logo">
+                                            <img src="Nyara_Home_Visiting_Card-removebg-preview.png"
+                                                alt="Nyara Luxe Logo" class="logo-image">
+                                            <div class="logo-text">
+                                                <h1>NYARA</h1>
+                                                <p>LUXE</p>
+                                            </div>
+                                        </div>
+                                        <nav class="nav">
+                                            <a href="#home" class="nav-link active">Home</a>
+                                            <a href="about.html" class="nav-link">About</a>
+                                            <a href="#products" class="nav-link">Products</a>
+                                        </nav>
+                                    </div>
+                                </header>
 
-    <!-- Ecommerce Platform Selection Modal -->
-    <div id="ecommerce-modal" class="ecommerce-modal">
-        <div class="ecommerce-modal-content" style="position: relative;">
-            <button class="close-ecommerce-modal" id="close-ecommerce-modal">&times;</button>
-            <h3 id="ecommerce-modal-title">Select Platform</h3>
-            <div id="ecommerce-platforms" class="ecommerce-platforms">
-                <!-- Platforms will be added here -->
-            </div>
-        </div>
-    </div>
+                                <main>
+                                    <section id="home" class="hero">
+                                        <div class="hero-video-container">
+                                            <!-- Replaced video with backimg for cinematic 3D effect -->
+                                            <div class="hero-backimg" style="background-image: url('imgnn.png');">
+                                                <!-- Moved text to top of image -->
+                                                <div class="hero-text-top">
+                                                    <h2 class="hero-title">Soft Luxury for Modern Homes</h2>
+                                                    <p class="hero-subtitle">Soft textures, warm lighting, and timeless
+                                                        accents—crafted to bring a
+                                                        sense of calm luxury to your everyday living.</p>
+                                                </div>
+                                            </div>
+                                            <div class="hero-video-overlay"></div>
+                                        </div>
+                                        <!-- Removed the green strip -->
+                                    </section>
 
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Nyara Luxe</h3>
-                    <p>Premium interior design solutions</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Contact</h4>
-                    <p>F-65, Lane 3, Rajouri Garden</p>
-                    <p>New Delhi, 110027</p>
-                    <p>+91-9783597547</p>
-                    <p>+91-9079152336</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 Nyara Luxe. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+                                    <section id="products" class="products-section">
+                                        <div class="container">
+                                            <h2 class="section-title">Our Collection</h2>
 
-    <script src="stagger-carousel.js"></script>
-    <script src="script.js"></script>
-</body>
+                                            <div class="category-filter">
+                                                <div id="ecommerce-modal" class="ecommerce-modal">
+                                                    <div class="ecommerce-modal-content" style="position: relative;">
+                                                        <button class="close-ecommerce-modal"
+                                                            id="close-ecommerce-modal">&times;</button>
+                                                        <h3 id="ecommerce-modal-title">Select Platform</h3>
+                                                        <div id="ecommerce-platforms" class="ecommerce-platforms">
+                                                            <!-- Platforms will be added here -->
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-</html>
+                                                <footer class="footer">
+                                                    <div class="container">
+                                                        <div class="footer-content">
+                                                            <div class="footer-section">
+                                                                <h3>Nyara Luxe</h3>
+                                                                <p>Premium interior design solutions</p>
+                                                            </div>
+                                                            <div class="footer-section">
+                                                                <h4>Contact</h4>
+                                                                <p>F-65, Lane 3, Rajouri Garden</p>
+                                                                <p>New Delhi, 110027</p>
+                                                                <p>+91-9783597547</p>
+                                                                <p>+91-9079152336</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="footer-bottom">
+                                                            <p>&copy; 2024 Nyara Luxe. All rights reserved.</p>
+                                                        </div>
+                                                    </div>
+                                                </footer>
+
+                                                <script src="script.js"></script>
+                            </body>
+
+                            </html>
