@@ -275,6 +275,7 @@ function showAdminPanel() {
     loadCategories(); // Load categories first
     updateCategoryTitle();
     loadProducts();
+    setupManagementButtons();
 }
 
 function updateCategoryTitle() {
