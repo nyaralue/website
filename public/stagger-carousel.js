@@ -59,7 +59,7 @@ class StaggerCarousel {
         this.nextBtn.addEventListener('click', () => this.move(1));
 
         window.addEventListener('resize', () => {
-            const newSize = window.innerWidth >= 640 ? 365 : 290;
+            const newSize = window.innerWidth >= 1024 ? 420 : window.innerWidth >= 640 ? 360 : 300;
             if (newSize !== this.cardSize) {
                 this.cardSize = newSize;
                 this.render();
