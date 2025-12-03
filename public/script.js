@@ -8,7 +8,6 @@ let categories = [];
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
     loadProducts();
-    setupDarkMode();
     setupEcommerceModal();
     setupScrollAnimations();
 });
