@@ -832,11 +832,18 @@ function setupManagementButtons() {
 // Load Categories for Admin (tabs + sidebar)
 async function loadCategoriesForAdmin() {
     try {
+        console.log('Loading categories...');
         const response = await fetch(`${API_BASE}/categories`);
         const categories = await response.json();
+        console.log('Categories loaded:', categories);
         
         // Populate category tabs
         const filterContainer = document.querySelector('.admin-category-filter');
+        if (!filterContainer) {
+            console.error('Category filter container not found!');
+            return;
+        }
+        
         const existingButtons = filterContainer.querySelectorAll('.filter-btn:not([data-category="all"])');
         existingButtons.forEach(btn => btn.remove());
         
