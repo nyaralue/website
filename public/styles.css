@@ -1626,3 +1626,127 @@ margin: 0;
         font-size: 0.7rem;
     }
 }
+/* Products Grid Styles */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.product-grid-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+}
+
+.product-grid-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(70, 76, 60, 0.15);
+}
+
+.product-grid-image {
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+    background: var(--soft-stone);
+    position: relative;
+}
+
+.product-grid-image img,
+.product-grid-image video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.product-grid-card:hover .product-grid-image img,
+.product-grid-card:hover .product-grid-image video {
+    transform: scale(1.1);
+}
+
+.product-grid-info {
+    padding: 1.5rem;
+}
+
+.product-grid-category {
+    font-size: 0.75rem;
+    color: var(--muted-moss);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.product-grid-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.product-grid-sku {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    font-style: italic;
+}
+
+.product-grid-price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--deep-olive);
+    margin-bottom: 1rem;
+}
+
+.product-grid-buy-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--deep-olive);
+    color: var(--warm-off-white);
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.product-grid-buy-btn:hover {
+    background: var(--muted-moss);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(70, 76, 60, 0.3);
+}
+
+@media (max-width: 768px) {
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .product-grid-image {
+        height: 220px;
+    }
+
+    .product-grid-info {
+        padding: 1.2rem;
+    }
+
+    .product-grid-name {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .products-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
