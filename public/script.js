@@ -200,27 +200,7 @@ function setupEcommerceModal() {
     });
 }
 
-// Dark mode functionality
-function setupDarkMode() {
-    const themeToggle = document.getElementById('theme-toggle-checkbox');
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-        if (themeToggle) themeToggle.checked = true;
-    }
-    
-    if (themeToggle) {
-        themeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.body.classList.add('dark-mode');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.body.classList.remove('dark-mode');
-                localStorage.setItem('theme', 'light');
-            }
-        });
-    }
-}
+// Dark mode removed
 
 function setupScrollAnimations() {
     // Simple scroll animation for elements
