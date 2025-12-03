@@ -100,9 +100,13 @@ function displayProducts() {
             mediaHtml = `<div class="no-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%); color: var(--muted-moss); font-size: 3rem;">🏠</div>`;
         }
         
+        const allMedia = product.media || [];
+        const hasMultipleImages = allMedia.length > 1;
+        
         return `
             <div class="product-grid-card">
-                <div class="product-grid-image">
+                <div class="product-grid-image" ${hasMultipleImages ? `onclick="initProductGallery(event, ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"` : ''}>
+                    ${hasMultipleImages ? `<div class="product-gallery-count">${allMedia.length} <i class="fas fa-images"></i></div>` : ''}
                     ${mediaHtml}
                 </div>
                 <div class="product-grid-info">
