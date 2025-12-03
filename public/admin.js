@@ -278,11 +278,11 @@ function showAdminPanel() {
     setupManagementButtons();
 }
 
-function updateCategoryTitle() {
-    const title = document.getElementById('current-category-title');
-    const categoryName = currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1);
-    title.textContent = `${categoryName} Products`;
-}
+// Category dropdown in sidebar - for quick product addition
+document.getElementById('category-dropdown').addEventListener('change', (e) => {
+    // This is just for selecting category when adding new product
+    // The actual filtering is done by tabs
+});
 
 // Load products function
 async function loadProducts() {
