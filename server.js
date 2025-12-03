@@ -190,10 +190,10 @@ async function initializeCategories() {
     const categoryCount = await Category.countDocuments();
     if (categoryCount === 0) {
       const defaultCategories = [
-        { name: 'light', displayName: 'Light & Lamps', icon: 'fa-lightbulb' },
+        { name: 'chandelier', displayName: 'Chandelier', icon: 'fa-lightbulb' },
+        { name: 'lights', displayName: 'Lights & Lamps', icon: 'fa-lightbulb' },
         { name: 'decors', displayName: 'Decors Showpieces', icon: 'fa-gem' },
-        { name: 'functional', displayName: 'Functional Mini Decor', icon: 'fa-box-open' },
-        { name: 'jhoomar', displayName: 'Jhoomar', icon: 'fa-star' }
+        { name: 'functional', displayName: 'Functional Mini Decor', icon: 'fa-box-open' }
       ];
       
       await Category.insertMany(defaultCategories);
