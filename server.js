@@ -395,6 +395,24 @@ app.post('/api/categories', verifyToken, async (req, res) => {
   }
 });
 
+// Delete category (Admin only)
+app.delete('/api/categories/:id', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const { id } = req.params;
+
+    const category = await Category.findByIdAndDelete(id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
 // SKU Management APIs
 
 // Get all SKUs
