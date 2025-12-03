@@ -1386,3 +1386,50 @@ body.dark-mode .cropper-image-wrapper {
         height: 220px;
     }
 }
+
+/* Admin Category Filter Tabs */
+.admin-category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-category-filter .filter-btn {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: var(--deep-olive);
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Lato', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-category-filter .filter-btn:hover {
+    border-color: var(--deep-olive);
+    background: var(--soft-stone);
+    transform: translateY(-2px);
+}
+
+.admin-category-filter .filter-btn.active {
+    background: var(--deep-olive);
+    color: white;
+    border-color: var(--deep-olive);
+}
+
+.admin-category-filter .filter-btn i {
+    font-size: 1.1rem;
+}
+
+/* Hide old dropdown while keeping for backend use */
+.category-selector {
+    display: none;
+}
