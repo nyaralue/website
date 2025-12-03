@@ -2,15 +2,53 @@ const API_BASE = '/api';
 
 let allProducts = {};
 let currentCategory = 'all';
+let categories = [];
 
 // Load products on page load
 document.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
     loadProducts();
-    setupCategoryFilters();
     setupDarkMode();
     setupEcommerceModal();
     setupScrollAnimations();
 });
+
+// Load categories
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_BASE}/categories`);
+        categories = await response.json();
+        
+        // Add category buttons
+        const filterContainer = document.querySelector('.category-filter');
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn';
+            btn.dataset.category = cat.name;
+            btn.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.displayName}`;
+            btn.addEventListener('click', () => {
+                // Update active state
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update current category
+                currentCategory = cat.name;
+                displayProducts();
+            });
+            filterContainer.appendChild(btn);
+        });
+        
+        // Setup "All Products" button
+        document.querySelector('.filter-btn[data-category="all"]').addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.filter-btn[data-category="all"]').classList.add('active');
+            currentCategory = 'all';
+            displayProducts();
+        });
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
 
 // Load all products
 async function loadProducts() {
@@ -20,38 +58,19 @@ async function loadProducts() {
         displayProducts();
     } catch (error) {
         console.error('Error loading products:', error);
-        showEmptyState();
+        showEmptyState('Error loading products. Please try again later.');
     }
 }
 
-// Setup category filter buttons
-function setupCategoryFilters() {
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Update active state
-            filterButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // Update current category
-            currentCategory = btn.dataset.category;
-            displayProducts();
-        });
-    });
-}
-
-// Carousel instance
-let carouselInstance = null;
-
-// Display products based on current filter
+// Display products in grid
 function displayProducts() {
     const container = document.getElementById('products-container');
-
+    
     if (!container) return;
-
+    
     // Get products to display
     let productsToShow = [];
-
+    
     if (currentCategory === 'all') {
         // Show all products from all categories
         Object.values(allProducts.categories || {}).forEach(categoryProducts => {
@@ -60,42 +79,55 @@ function displayProducts() {
     } else {
         productsToShow = allProducts.categories[currentCategory] || [];
     }
-
+    
     if (productsToShow.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
-                <h3>No Products Found</h3>
-                <p>Check back soon for new additions to our collection.</p>
-            </div>
-        `;
+        showEmptyState('No products found in this category.');
         return;
     }
-
-    // Destroy existing carousel if any
-    if (carouselInstance) {
-        carouselInstance.destroy();
-    }
-
-    // Initialize StaggerCarousel with products
-    carouselInstance = new StaggerCarousel('#products-container', {
-        autoRotate: false,
-        onCardClick: handleProductAction
-    });
-
-    carouselInstance.loadProducts(productsToShow);
+    
+    container.innerHTML = productsToShow.map(product => {
+        const media = product.media && product.media.length > 0 ? product.media[0] : null;
+        const isVideo = media && (media.includes('.mp4') || media.includes('.mov') || media.includes('.avi') || media.includes('.webm'));
+        
+        let mediaHtml = '';
+        if (media) {
+            if (isVideo) {
+                mediaHtml = `<video src="${media}" autoplay muted loop playsinline></video>`;
+            } else {
+                mediaHtml = `<img src="${media}" alt="${product.name}">`;
+            }
+        } else {
+            mediaHtml = `<div class="no-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%); color: var(--muted-moss); font-size: 3rem;">🏠</div>`;
+        }
+        
+        return `
+            <div class="product-grid-card">
+                <div class="product-grid-image">
+                    ${mediaHtml}
+                </div>
+                <div class="product-grid-info">
+                    <div class="product-grid-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
+                    <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
+                    ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
+                    ${product.price ? `<div class="product-grid-price">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
+                    <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${product.name || 'Product'}')">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-// Handle product actions from carousel
-function handleProductAction(product, action) {
-    if (action === 'buy') {
-        // Show e-commerce modal
-        showEcommerceModal(
-            product.amazonLink || '',
-            product.flipkartLink || '',
-            product.meeshoLink || '',
-            product.name || 'Product'
-        );
-    }
+// Show empty state
+function showEmptyState(message) {
+    const container = document.getElementById('products-container');
+    container.innerHTML = `
+        <div class="no-products-message" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--text-secondary);">
+            <i class="fas fa-box-open" style="font-size: 4rem; color: var(--muted-moss); margin-bottom: 1rem; display: block;"></i>
+            <h3>${message}</h3>
+        </div>
+    `;
 }
 
 // Show ecommerce platform selection modal
@@ -103,12 +135,12 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
     const modal = document.getElementById('ecommerce-modal');
     const modalTitle = document.getElementById('ecommerce-modal-title');
     const platformsContainer = document.getElementById('ecommerce-platforms');
-
+    
     modalTitle.textContent = `Buy ${productName}`;
     platformsContainer.innerHTML = '';
-
+    
     let hasLinks = false;
-
+    
     if (amazonLink) {
         hasLinks = true;
         const amazonBtn = document.createElement('a');
@@ -118,7 +150,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         amazonBtn.innerHTML = `<span>Buy on Amazon</span>`;
         platformsContainer.appendChild(amazonBtn);
     }
-
+    
     if (flipkartLink) {
         hasLinks = true;
         const flipkartBtn = document.createElement('a');
@@ -128,7 +160,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         flipkartBtn.innerHTML = `<span>Buy on Flipkart</span>`;
         platformsContainer.appendChild(flipkartBtn);
     }
-
+    
     if (meeshoLink) {
         hasLinks = true;
         const meeshoBtn = document.createElement('a');
@@ -138,11 +170,11 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         meeshoBtn.innerHTML = `<span>Buy on Meesho</span>`;
         platformsContainer.appendChild(meeshoBtn);
     }
-
+    
     if (!hasLinks) {
         platformsContainer.innerHTML = '<p style="color: var(--text-secondary);">No purchase links available.</p>';
     }
-
+    
     modal.classList.add('show');
 }
 
@@ -150,13 +182,13 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
 function setupEcommerceModal() {
     const modal = document.getElementById('ecommerce-modal');
     const closeBtn = document.getElementById('close-ecommerce-modal');
-
+    
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('show');
         });
     }
-
+    
     modal.addEventListener('click', (e) => {
         if (e.target.id === 'ecommerce-modal') {
             modal.classList.remove('show');
@@ -172,7 +204,7 @@ function setupDarkMode() {
         document.body.classList.add('dark-mode');
         if (themeToggle) themeToggle.checked = true;
     }
-
+    
     if (themeToggle) {
         themeToggle.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -186,113 +218,6 @@ function setupDarkMode() {
     }
 }
 
-// Show empty state
-function showEmptyState() {
-    const container = document.getElementById('products-container');
-    if (container) {
-        container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
-                <h3>Loading Products...</h3>
-                <p>Please wait while we load our collection.</p>
-            </div>
-        `;
-    }
-}
-
-// Show help form modal
-function showHelpFormModal(productId, productName, productSku) {
-    let helpModal = document.getElementById('help-modal');
-    if (!helpModal) {
-        helpModal = document.createElement('div');
-        helpModal.id = 'help-modal';
-        helpModal.className = 'help-modal';
-        helpModal.innerHTML = `
-            <div class="help-modal-content">
-                <button class="close-help-modal">&times;</button>
-                <h3>Need Help with This Product?</h3>
-                <div class="help-product-info">
-                    <h4 id="help-product-name"></h4>
-                </div>
-                <form id="help-form" class="help-form">
-                    <input type="hidden" id="help-product-id" name="productId">
-                    <input type="hidden" id="help-product-sku-hidden" name="productSku">
-                    <div class="form-group">
-                        <label for="help-name">Your Name *</label>
-                        <input type="text" id="help-name" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="help-email">Email Address *</label>
-                        <input type="email" id="help-email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="help-query">Your Query *</label>
-                        <textarea id="help-query" name="query" rows="4" required></textarea>
-                    </div>
-                    <button type="submit" class="submit-help-btn">Submit Query</button>
-                </form>
-                <div id="help-form-message" class="help-form-message"></div>
-            </div>
-        `;
-        document.body.appendChild(helpModal);
-
-        helpModal.querySelector('.close-help-modal').addEventListener('click', () => {
-            helpModal.style.display = 'none';
-        });
-
-        helpModal.addEventListener('click', (e) => {
-            if (e.target === helpModal) {
-                helpModal.style.display = 'none';
-            }
-        });
-
-        const form = helpModal.querySelector('#help-form');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            const messageDiv = document.getElementById('help-form-message');
-
-            messageDiv.textContent = 'Sending...';
-            messageDiv.className = 'help-form-message';
-
-            try {
-                const response = await fetch(`${API_BASE}/help-request`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Query sent successfully! We will contact you soon.';
-                    messageDiv.classList.add('success');
-                    form.reset();
-                    setTimeout(() => {
-                        helpModal.style.display = 'none';
-                        messageDiv.textContent = '';
-                        messageDiv.classList.remove('success');
-                    }, 2000);
-                } else {
-                    throw new Error(result.message || 'Failed to send query');
-                }
-            } catch (error) {
-                console.error('Error sending help query:', error);
-                messageDiv.textContent = 'Error: ' + error.message;
-                messageDiv.classList.add('error');
-            }
-        });
-    }
-
-    document.getElementById('help-product-name').textContent = productName;
-    document.getElementById('help-product-id').value = productId;
-    document.getElementById('help-product-sku-hidden').value = productSku || '';
-
-    helpModal.style.display = 'flex';
-}
-
 function setupScrollAnimations() {
     // Simple scroll animation for elements
     const observer = new IntersectionObserver((entries) => {
@@ -303,7 +228,7 @@ function setupScrollAnimations() {
         });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.product-card, .section-title').forEach(el => {
+    document.querySelectorAll('.product-grid-card, .section-title').forEach(el => {
         el.classList.add('fade-in-up');
         observer.observe(el);
     });
