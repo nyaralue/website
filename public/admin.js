@@ -826,13 +826,46 @@ function setupManagementButtons() {
     });
 }
 
-// Load Categories from Database
-async function loadCategories() {
+// Load Categories for Admin (tabs + dropdown)
+async function loadCategoriesForAdmin() {
     try {
         const response = await fetch(`${API_BASE}/categories`);
         const categories = await response.json();
         
-        // Populate category dropdown
+        // Populate category tabs
+        const filterContainer = document.querySelector('.admin-category-filter');
+        const existingButtons = filterContainer.querySelectorAll('.filter-btn:not([data-category="all"])');
+        existingButtons.forEach(btn => btn.remove());
+        
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn';
+            btn.dataset.category = cat.name;
+            btn.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.displayName}`;
+            btn.addEventListener('click', () => {
+                // Update active state
+                document.querySelectorAll('.admin-category-filter .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update current category
+                currentCategory = cat.name;
+                displayProducts();
+            });
+            filterContainer.appendChild(btn);
+        });
+        
+        // Setup "All Products" button
+        const allBtn = document.querySelector('.admin-category-filter .filter-btn[data-category="all"]');
+        if (allBtn) {
+            allBtn.addEventListener('click', () => {
+                document.querySelectorAll('.admin-category-filter .filter-btn').forEach(b => b.classList.remove('active'));
+                allBtn.classList.add('active');
+                currentCategory = 'all';
+                displayProducts();
+            });
+        }
+
+        // Populate category dropdown in sidebar
         const dropdown = document.getElementById('category-dropdown');
         dropdown.innerHTML = '';
         
@@ -843,10 +876,8 @@ async function loadCategories() {
             dropdown.appendChild(option);
         });
 
-        // Set current category to first one if not set
-        if (!currentCategory && categories.length > 0) {
-            currentCategory = categories[0].name;
-        }
+        // Set current category to 'all' initially
+        currentCategory = 'all';
     } catch (error) {
         console.error('Error loading categories:', error);
         showNotification('Error loading categories', 'error');
