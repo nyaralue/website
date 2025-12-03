@@ -872,7 +872,14 @@ async function loadCategoriesForAdmin() {
 // Load categories in sidebar with remove buttons
 function loadSidebarCategories(categories) {
     const container = document.getElementById('sidebar-categories-list');
+    if (!container) return;
+    
     container.innerHTML = '';
+    
+    if (categories.length === 0) {
+        container.innerHTML = '<p style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">No categories yet</p>';
+        return;
+    }
     
     categories.forEach(cat => {
         const item = document.createElement('div');
@@ -880,14 +887,21 @@ function loadSidebarCategories(categories) {
         item.innerHTML = `
             <div class="sidebar-category-info">
                 <div class="sidebar-category-icon">
-                    <i class="fas ${cat.icon}"></i>
+                    <i class="fas ${cat.icon || 'fa-box'}"></i>
                 </div>
                 <span class="sidebar-category-name">${cat.displayName}</span>
             </div>
-            <button class="sidebar-remove-btn" onclick="removeCategory('${cat._id}', '${cat.name}')">
+            <button class="sidebar-remove-btn" data-category-id="${cat._id}" data-category-name="${cat.name}">
                 <i class="fas fa-trash"></i>
             </button>
         `;
+        
+        // Add click listener to remove button
+        const removeBtn = item.querySelector('.sidebar-remove-btn');
+        removeBtn.addEventListener('click', () => {
+            removeCategory(cat._id, cat.displayName);
+        });
+        
         container.appendChild(item);
     });
 }
