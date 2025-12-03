@@ -281,8 +281,10 @@ document.getElementById('category-dropdown').addEventListener('change', (e) => {
 // Load products function
 async function loadProducts() {
     try {
+        console.log('Loading products...');
         const response = await fetch(`${API_BASE}/products`);
         allProducts = await response.json();
+        console.log('Products loaded:', allProducts);
         
         // Display products for current category
         displayProducts();
