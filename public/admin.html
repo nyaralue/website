@@ -91,8 +91,18 @@
                 </div>
 
                 <div class="admin-content">
-                    <h2 id="current-category-title">Products</h2>
-                    <div id="products-list" class="products-list">
+                    <h2 class="section-title">Product Management</h2>
+                    
+                    <!-- Category Filter Tabs -->
+                    <div class="category-filter admin-category-filter">
+                        <button class="filter-btn active" data-category="all">
+                            <i class="fas fa-th-large"></i> All Products
+                        </button>
+                        <!-- Categories will be loaded dynamically -->
+                    </div>
+                    
+                    <!-- Products Grid -->
+                    <div id="products-list" class="products-list admin-products-grid">
                         <!-- Products will be loaded here -->
                     </div>
                 </div>
