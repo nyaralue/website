@@ -311,27 +311,44 @@ function displayProducts() {
         return;
     }
     
-    container.innerHTML = products.map(product => `
-        <div class="product-card" data-id="${product.id}">
-            <div class="product-image-preview">
-                ${product.media && product.media.length > 0 ? 
-                    `<img src="${product.media[0]}" alt="${product.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0QwQ0JDMiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkxhdG8iIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NjRDM0MiPkltYWdlPC90ZXh0Pjwvc3ZnPg=='">` :
-                    `<div class="no-image-placeholder">No Image</div>`
-                }
-            </div>
-            <div class="product-info">
-                <h3 class="product-name">${product.name}</h3>
-                <p class="product-sku">SKU: ${product.sku || 'N/A'}</p>
-                ${product.price ? `<p class="product-price">₹${parseFloat(product.price).toLocaleString()}</p>` : ''}
-                <div class="product-actions">
-                    <button class="edit-btn" onclick="editProduct('${product.id}')">Edit</button>
-                    <button class="delete-btn" onclick="deleteProduct('${product.id}')">Delete</button>
+    container.innerHTML = products.map(product => {
+        const media = product.media && product.media.length > 0 ? product.media[0] : null;
+        const isVideo = media && (media.includes('.mp4') || media.includes('.mov') || media.includes('.avi') || media.includes('.webm'));
+        
+        let mediaHtml = '';
+        if (media) {
+            if (isVideo) {
+                mediaHtml = `<video src="${media}" autoplay muted loop playsinline></video>`;
+            } else {
+                mediaHtml = `<img src="${media}" alt="${product.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0QwQ0JDMiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkxhdG8iIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NjRDM0MiPkltYWdlPC90ZXh0Pjwvc3ZnPg=='">`;
+            }
+        } else {
+            mediaHtml = `<div class="no-image-placeholder">No Image</div>`;
+        }
+        
+        return `
+            <div class="admin-product-card" data-id="${product.id}">
+                <div class="admin-product-image">
+                    ${mediaHtml}
+                </div>
+                <div class="admin-product-info">
+                    <div class="admin-product-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
+                    <h3 class="admin-product-name">${product.name}</h3>
+                    <p class="admin-product-sku">SKU: ${product.sku || 'N/A'}</p>
+                    ${product.price ? `<p class="admin-product-price">₹${parseFloat(product.price).toLocaleString()}</p>` : ''}
+                    <div class="admin-product-actions">
+                        <button class="edit-btn" onclick="editProduct('${product.id}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="delete-btn" onclick="deleteProduct('${product.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
-
 function editProduct(productId) {
     // Find the product by ID across all categories
     let productToEdit = null;
