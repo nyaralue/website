@@ -295,7 +295,13 @@ async function loadProducts() {
 function displayProducts() {
     const container = document.getElementById('products-list');
     
-    if (!container) return;
+    if (!container) {
+        console.error('Products container not found!');
+        return;
+    }
+    
+    console.log('Current category:', currentCategory);
+    console.log('All products:', allProducts);
     
     // Get products for current category
     let products = [];
@@ -307,6 +313,8 @@ function displayProducts() {
     } else {
         products = allProducts.categories[currentCategory] || [];
     }
+    
+    console.log('Products to display:', products.length);
     
     if (products.length === 0) {
         container.innerHTML = '<p class="no-products">No products found in this category.</p>';
