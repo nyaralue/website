@@ -61,12 +61,14 @@
             <div class="admin-container">
                 <div class="admin-sidebar">
                     <h3>Category Management</h3>
-                    
+
                     <!-- Add Category -->
                     <div class="sidebar-category-add">
-                        <input type="text" id="quick-category-name" placeholder="Category ID (e.g., wall-art)" class="sidebar-input">
+                        <input type="text" id="quick-category-name" placeholder="Category ID (e.g., wall-art)"
+                            class="sidebar-input">
                         <input type="text" id="quick-category-display" placeholder="Display Name" class="sidebar-input">
-                        <input type="text" id="quick-category-icon" placeholder="Icon (e.g., fa-image)" class="sidebar-input" value="fa-box">
+                        <input type="text" id="quick-category-icon" placeholder="Icon (e.g., fa-image)"
+                            class="sidebar-input" value="fa-box">
                         <button id="quick-add-category-btn" class="sidebar-btn">
                             <i class="fas fa-plus"></i> Add Category
                         </button>
@@ -94,7 +96,7 @@
 
                 <div class="admin-content">
                     <h2 class="section-title">Product Management</h2>
-                    
+
                     <!-- Category Filter Tabs -->
                     <div class="category-filter admin-category-filter">
                         <button class="filter-btn active" data-category="all">
@@ -102,7 +104,7 @@
                         </button>
                         <!-- Categories will be loaded dynamically -->
                     </div>
-                    
+
                     <!-- Products Grid -->
                     <div id="products-list" class="products-list admin-products-grid">
                         <!-- Products will be loaded here -->
@@ -221,13 +223,15 @@
                 <h2>Category Management</h2>
                 <button class="close-modal" id="close-category-modal">&times;</button>
             </div>
-            
+
             <div class="modal-body">
                 <!-- Add Category Form -->
-                <form id="add-category-form" class="category-form" style="margin-bottom: 2rem; padding: 1.5rem; background: #f5f5f5; border-radius: 8px;">
+                <form id="add-category-form" class="category-form"
+                    style="margin-bottom: 2rem; padding: 1.5rem; background: #f5f5f5; border-radius: 8px;">
                     <h3 style="margin-bottom: 1rem; color: var(--deep-olive);">Add New Category</h3>
-                    
+
                     <div class="form-group">
+                        <input type="hidden" id="category-id" name="id">
                         <label for="category-name">Category ID (URL-friendly) *</label>
                         <input type="text" id="category-name" name="name" required placeholder="e.g., wall-art">
                         <small>Use lowercase, no spaces (e.g., wall-art, furniture)</small>
@@ -235,7 +239,8 @@
 
                     <div class="form-group">
                         <label for="category-display-name">Display Name *</label>
-                        <input type="text" id="category-display-name" name="displayName" required placeholder="e.g., Wall Art">
+                        <input type="text" id="category-display-name" name="displayName" required
+                            placeholder="e.g., Wall Art">
                     </div>
 
                     <div class="form-group">
@@ -268,12 +273,13 @@
                 <h2>SKU Management</h2>
                 <button class="close-modal" id="close-sku-modal">&times;</button>
             </div>
-            
+
             <div class="modal-body">
                 <!-- Add SKU Form -->
-                <form id="add-sku-form" class="sku-form" style="margin-bottom: 2rem; padding: 1.5rem; background: #f5f5f5; border-radius: 8px;">
+                <form id="add-sku-form" class="sku-form"
+                    style="margin-bottom: 2rem; padding: 1.5rem; background: #f5f5f5; border-radius: 8px;">
                     <h3 style="margin-bottom: 1rem; color: var(--deep-olive);">Add New SKU</h3>
-                    
+
                     <div class="form-group">
                         <label for="sku-id">SKU ID *</label>
                         <input type="text" id="sku-id" name="skuId" required placeholder="e.g., NYL-001234">

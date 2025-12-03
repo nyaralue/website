@@ -195,7 +195,7 @@ async function initializeCategories() {
         { name: 'decors', displayName: 'Decors Showpieces', icon: 'fa-gem' },
         { name: 'functional', displayName: 'Functional Mini Decor', icon: 'fa-box-open' }
       ];
-      
+
       await Category.insertMany(defaultCategories);
       console.log('Default categories created');
     }
@@ -410,6 +410,47 @@ app.delete('/api/categories/:id', verifyToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
+// Update category (Admin only)
+app.put('/api/categories/:id', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const { id } = req.params;
+    const { name, displayName, icon } = req.body;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const oldName = category.name;
+    const newName = name ? name.toLowerCase() : oldName;
+
+    // If name is changing, check for duplicates
+    if (newName !== oldName) {
+      const existing = await Category.findOne({ name: newName });
+      if (existing) {
+        return res.status(400).json({ error: 'Category ID already exists' });
+      }
+    }
+
+    category.name = newName;
+    category.displayName = displayName || category.displayName;
+    category.icon = icon || category.icon;
+
+    await category.save();
+
+    // If name changed, update all associated products
+    if (newName !== oldName) {
+      await Product.updateMany({ category: oldName }, { category: newName });
+    }
+
+    res.json({ message: 'Category updated successfully', category });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update category' });
   }
 });
 
