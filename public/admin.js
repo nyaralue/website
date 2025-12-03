@@ -819,7 +819,7 @@ function setupManagementButtons() {
     });
 }
 
-// Load Categories for Admin (tabs + dropdown)
+// Load Categories for Admin (tabs + sidebar)
 async function loadCategoriesForAdmin() {
     try {
         const response = await fetch(`${API_BASE}/categories`);
@@ -858,22 +858,106 @@ async function loadCategoriesForAdmin() {
             });
         }
 
-        // Populate category dropdown in sidebar
-        const dropdown = document.getElementById('category-dropdown');
-        dropdown.innerHTML = '';
-        
-        categories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.name;
-            option.textContent = cat.displayName;
-            dropdown.appendChild(option);
-        });
+        // Populate sidebar categories list
+        loadSidebarCategories(categories);
 
         // Set current category to 'all' initially
         currentCategory = 'all';
     } catch (error) {
         console.error('Error loading categories:', error);
         showNotification('Error loading categories', 'error');
+    }
+}
+
+// Load categories in sidebar with remove buttons
+function loadSidebarCategories(categories) {
+    const container = document.getElementById('sidebar-categories-list');
+    container.innerHTML = '';
+    
+    categories.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = 'sidebar-category-item';
+        item.innerHTML = `
+            <div class="sidebar-category-info">
+                <div class="sidebar-category-icon">
+                    <i class="fas ${cat.icon}"></i>
+                </div>
+                <span class="sidebar-category-name">${cat.displayName}</span>
+            </div>
+            <button class="sidebar-remove-btn" onclick="removeCategory('${cat._id}', '${cat.name}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// Quick add category from sidebar
+async function quickAddCategory() {
+    const nameInput = document.getElementById('quick-category-name');
+    const displayInput = document.getElementById('quick-category-display');
+    const iconInput = document.getElementById('quick-category-icon');
+    
+    const categoryData = {
+        name: nameInput.value.toLowerCase().trim(),
+        displayName: displayInput.value.trim(),
+        icon: iconInput.value.trim() || 'fa-box'
+    };
+    
+    if (!categoryData.name || !categoryData.displayName) {
+        showNotification('Please fill in name and display name', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/categories`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(categoryData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Category added successfully!', 'success');
+            nameInput.value = '';
+            displayInput.value = '';
+            iconInput.value = 'fa-box';
+            loadCategoriesForAdmin(); // Reload
+        } else {
+            showNotification(data.error || 'Failed to add category', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+// Remove category
+async function removeCategory(categoryId, categoryName) {
+    if (!confirm(`Are you sure you want to delete "${categoryName}" category? This will NOT delete products in this category.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/categories/${categoryId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            showNotification('Category deleted successfully!', 'success');
+            loadCategoriesForAdmin(); // Reload
+        } else {
+            const data = await response.json();
+            showNotification(data.error || 'Failed to delete category', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
     }
 }
 
