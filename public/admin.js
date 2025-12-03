@@ -304,7 +304,15 @@ function displayProducts() {
     if (!container) return;
     
     // Get products for current category
-    const products = allProducts.categories[currentCategory] || [];
+    let products = [];
+    if (currentCategory === 'all') {
+        // Show all products from all categories
+        Object.values(allProducts.categories || {}).forEach(categoryProducts => {
+            products.push(...categoryProducts);
+        });
+    } else {
+        products = allProducts.categories[currentCategory] || [];
+    }
     
     if (products.length === 0) {
         container.innerHTML = '<p class="no-products">No products found in this category.</p>';
