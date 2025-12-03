@@ -1,7 +1,7 @@
 const API_BASE = '/api';
 
 let authToken = null;
-let currentCategory = 'jhoomar';
+let currentCategory = 'all';
 let products = [];
 let editingProductId = null;
 let uploadedFiles = [];
