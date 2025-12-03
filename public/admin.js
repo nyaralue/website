@@ -801,10 +801,8 @@ document.getElementById('product-modal').addEventListener('click', (e) => {
 // ===== Category Management =====
 
 function setupManagementButtons() {
-    // Category Management Button
-    document.getElementById('manage-categories-btn').addEventListener('click', () => {
-        openCategoryModal();
-    });
+    // Quick Add Category in Sidebar
+    document.getElementById('quick-add-category-btn').addEventListener('click', quickAddCategory);
 
     // SKU Management Button
     document.getElementById('manage-skus-btn').addEventListener('click', () => {
@@ -812,14 +810,7 @@ function setupManagementButtons() {
     });
 
     // Close modals
-    document.getElementById('close-category-modal').addEventListener('click', closeCategoryModal);
     document.getElementById('close-sku-modal').addEventListener('click', closeSKUModal);
-
-    // Add Category Form
-    document.getElementById('add-category-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addCategory(e);
-    });
 
     // Add SKU Form
     document.getElementById('add-sku-form').addEventListener('submit', async (e) => {
