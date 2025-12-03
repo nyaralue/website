@@ -56,12 +56,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     showLoginScreen();
 });
 
-// Category dropdown handler
-document.getElementById('category-dropdown').addEventListener('change', (e) => {
-    currentCategory = e.target.value;
-    updateCategoryTitle();
-    loadProducts();
-});
+// Category dropdown handler - removed since we're using tabs now
 
 // Add product button
 document.getElementById('add-product-btn').addEventListener('click', () => {
