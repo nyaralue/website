@@ -268,7 +268,6 @@ function showAdminPanel() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
     loadCategories(); // Load categories first
-    updateCategoryTitle();
     loadProducts();
     setupManagementButtons();
 }
