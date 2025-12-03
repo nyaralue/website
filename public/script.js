@@ -237,3 +237,79 @@ function setupScrollAnimations() {
         observer.observe(el);
     });
 }
+
+// Product Image Gallery
+let currentGalleryIndex = 0;
+let currentGalleryMedia = [];
+
+function initProductGallery(event, mediaArray) {
+    event.stopPropagation();
+    currentGalleryMedia = mediaArray;
+    currentGalleryIndex = 0;
+    showGalleryModal();
+}
+
+function showGalleryModal() {
+    // Create modal if doesn't exist
+    let modal = document.getElementById('gallery-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'gallery-modal';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s;';
+        modal.innerHTML = `
+            <button onclick="closeGalleryModal()" style="position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; background: white; border: none; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 2;">&times;</button>
+            <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;">
+                <button onclick="previousGalleryImage()" class="product-gallery-arrow" style="position: absolute; left: -50px; width: 40px; height: 40px;"><i class="fas fa-chevron-left"></i></button>
+                <div id="gallery-content" style="max-width: 800px; max-height: 600px; display: flex; align-items: center; justify-content: center;"></div>
+                <button onclick="nextGalleryImage()" class="product-gallery-arrow" style="position: absolute; right: -50px; width: 40px; height: 40px;"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div id="gallery-indicators" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px;"></div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    updateGalleryContent();
+    modal.style.display = 'flex';
+    setTimeout(() => modal.style.opacity = '1', 10);
+}
+
+function closeGalleryModal() {
+    const modal = document.getElementById('gallery-modal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+}
+
+function updateGalleryContent() {
+    const content = document.getElementById('gallery-content');
+    const indicators = document.getElementById('gallery-indicators');
+    const media = currentGalleryMedia[currentGalleryIndex];
+    const isVideo = media && (media.includes('.mp4') || media.includes('.mov') || media.includes('.avi') || media.includes('.webm'));
+    
+    if (isVideo) {
+        content.innerHTML = `<video src="${media}" controls autoplay style="max-width: 100%; max-height: 100%; border-radius: 8px;">`;
+    } else {
+        content.innerHTML = `<img src="${media}" style="max-width: 100%; max-height: 100%; border-radius: 8px;">`;
+    }
+    
+    // Update indicators
+    indicators.innerHTML = currentGalleryMedia.map((_, i) => 
+        `<div class="product-gallery-dot ${i === currentGalleryIndex ? 'active' : ''}" onclick="goToGalleryImage(${i})"></div>`
+    ).join('');
+}
+
+function previousGalleryImage() {
+    currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryMedia.length) % currentGalleryMedia.length;
+    updateGalleryContent();
+}
+
+function nextGalleryImage() {
+    currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryMedia.length;
+    updateGalleryContent();
+}
+
+function goToGalleryImage(index) {
+    currentGalleryIndex = index;
+    updateGalleryContent();
+}
