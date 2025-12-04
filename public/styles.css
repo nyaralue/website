@@ -1927,6 +1927,201 @@ body {
         font-size: 1.4rem;
     }
 
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    z-index: 2;
+}
+
+/* Product Grid - Full Image Overlay Design */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+}
+
+.product-grid-card {
+    position: relative;
+    aspect-ratio: 3/4;
+    /* Taller rectangular shape */
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    background: #f0f0f0;
+    cursor: pointer;
+    border: none;
+    /* Ensure no border */
+}
+
+.product-grid-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.product-grid-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background: transparent;
+    /* Remove any background */
+}
+
+.product-grid-image img,
+.product-grid-image video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s ease;
+}
+
+/* Removed image zoom on hover as requested */
+/* .product-grid-card:hover .product-grid-image img {
+    transform: scale(1.1);
+} */
+
+.product-grid-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 2rem 1.5rem 1.5rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%);
+    z-index: 2;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    text-align: left;
+}
+
+.product-grid-category {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+}
+
+.product-grid-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.3rem;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.product-grid-sku {
+    display: none;
+}
+
+.product-grid-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.8rem;
+}
+
+.product-grid-buy-btn {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    color: var(--deep-olive);
+    border: none;
+    border-radius: 30px;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.5rem;
+    opacity: 0.9;
+}
+
+.product-grid-buy-btn:hover {
+    background: var(--deep-olive);
+    color: white;
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+/* Carousel Controls - Fixed Positioning */
+.product-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    /* Hidden by default */
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    z-index: 10;
+    /* High z-index to be on top */
+    color: var(--deep-olive);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.product-grid-card:hover .product-carousel-btn {
+    opacity: 1;
+    /* Show on hover */
+}
+
+.product-carousel-btn.prev {
+    left: 10px;
+}
+
+.product-carousel-btn.next {
+    right: 10px;
+}
+
+.product-carousel-btn:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.product-gallery-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .product-grid-card {
+        aspect-ratio: 3/4;
+    }
+
+    .product-grid-name {
+        font-size: 1.4rem;
+    }
+
     .product-grid-buy-btn {
         padding: 10px;
         font-size: 0.8rem;
@@ -1938,4 +2133,42 @@ body {
         width: 32px;
         height: 32px;
     }
+}
+
+/* Contact Social Icons */
+.contact-social-icons {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--warm-off-white);
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+    text-decoration: none;
+}
+
+.social-icon:hover {
+    transform: translateY(-3px);
+    background: var(--warm-off-white);
+}
+
+.social-icon.facebook:hover {
+    color: #1877F2;
+}
+
+.social-icon.instagram:hover {
+    color: #E4405F;
+}
+
+.social-icon.whatsapp:hover {
+    color: #25D366;
 }
