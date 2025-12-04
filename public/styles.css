@@ -1662,28 +1662,6 @@ body {
 
 .product-grid-buy-btn:hover {
     background: var(--deep-olive);
-    color: white;
-    opacity: 1;
-    transform: translateY(-2px);
-}
-
-/* Carousel Controls */
-.product-carousel-btn {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(5px);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.product-carousel-btn:hover {
-    background: white;
-    color: var(--deep-olive);
-}
-
-.product-gallery-count {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Mobile Responsiveness */
