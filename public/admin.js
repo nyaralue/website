@@ -343,7 +343,7 @@ function displayProducts() {
         }
 
         return `
-            <div class="admin-product-card" data-id="${product.id}">
+            <div class="admin-product-card" data-id="${product._id}">
                 <div class="admin-product-image">
                     ${mediaHtml}
                 </div>
@@ -353,10 +353,10 @@ function displayProducts() {
                     <p class="admin-product-sku">SKU: ${product.sku || 'N/A'}</p>
                     ${product.price ? `<p class="admin-product-price">₹${parseFloat(product.price).toLocaleString()}</p>` : ''}
                     <div class="admin-product-actions">
-                        <button class="edit-btn" onclick="editProduct('${product.id}')">
+                        <button class="edit-btn" onclick="editProduct('${product._id}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
-                        <button class="delete-btn" onclick="deleteProduct('${product.id}')">
+                        <button class="delete-btn" onclick="deleteProduct('${product._id}')">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </div>
@@ -371,7 +371,7 @@ function editProduct(productId) {
     let productCategory = null;
 
     for (const category in allProducts.categories) {
-        const product = allProducts.categories[category].find(p => p.id === productId);
+        const product = allProducts.categories[category].find(p => p._id === productId);
         if (product) {
             productToEdit = product;
             productCategory = category;

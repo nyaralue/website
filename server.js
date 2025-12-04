@@ -325,7 +325,7 @@ app.put('/api/products/:category/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    const product = await Product.findOneAndUpdate({ id: id }, updatedData, { new: true });
+    const product = await Product.findByIdAndUpdate(id, updatedData, { new: true });
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -342,7 +342,7 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
   try {
     await connectDB();
     const { id } = req.params;
-    const result = await Product.findOneAndDelete({ id: id });
+    const result = await Product.findByIdAndDelete(id);
 
     if (!result) {
       return res.status(404).json({ error: 'Product not found' });
