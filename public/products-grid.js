@@ -111,14 +111,13 @@ function displayProducts() {
                     ` : ''}
                     
                     ${mediaHtml}
-                    
-                    ${product.price ? `<div class="product-price-overlay">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
                 </div>
                 
                 <div class="product-grid-info">
                     <div class="product-grid-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
                     <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
                     ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
+                    ${product.price ? `<div class="product-grid-price">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
                     
                     <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${product.name || 'Product'}')">
                         Buy Now
