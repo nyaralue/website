@@ -1542,6 +1542,201 @@ body {
     background: rgba(0, 0, 0, 0.6);
     color: white;
     padding: 4px 10px;
+    font-size: 1.15rem;
+    margin-bottom: 1rem;
+}
+
+.closing-note {
+    font-style: italic;
+    margin: 1.5rem 0;
+    color: var(--muted-moss);
+}
+
+.signature {
+    font-weight: bold;
+    margin: 1rem 0;
+    color: var(--deep-olive);
+}
+
+.tagline {
+    font-size: 1.1rem;
+    margin: 1rem 0;
+    color: var(--taupe-sand);
+}
+
+.founder-signature {
+    margin-top: 2rem;
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+/* Hidden Admin Button */
+.admin-access-container {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.admin-access-btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    background: var(--deep-olive);
+    color: var(--warm-off-white);
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-access-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.admin-access-btn:hover::before {
+    left: 100%;
+}
+
+.admin-access-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes rotate3d {
+    0% {
+        transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+    }
+
+    100% {
+        transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+    }
+}
+
+@keyframes rotate3dReverse {
+    0% {
+        transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.9) translateZ(20px);
+    }
+
+    100% {
+        transform: rotateX(-360deg) rotateY(-360deg) rotateZ(-360deg) scale(0.9) translateZ(20px);
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.product-grid-info {
+    padding: 1.2rem;
+}
+
+.product-grid-name {
+    font-size: 1.2rem;
+}
+}
+
+@media (max-width: 576px) {
+    .products-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+/* Product Image Gallery */
+.product-grid-image-gallery {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.product-gallery-main {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.product-gallery-nav {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 12px;
+    border-radius: 20px;
+}
+
+.product-gallery-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.product-gallery-dot.active {
+    background: white;
+    width: 24px;
+    border-radius: 4px;
+}
+
+.product-gallery-arrows {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.product-gallery-arrow {
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.product-gallery-arrow:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+}
+
+.product-gallery-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 10px;
     border-radius: 12px;
     font-size: 0.75rem;
     z-index: 2;
@@ -1593,9 +1788,10 @@ body {
     transition: transform 0.7s ease;
 }
 
-.product-grid-card:hover .product-grid-image img {
+/* Removed image zoom on hover as requested */
+/* .product-grid-card:hover .product-grid-image img {
     transform: scale(1.1);
-}
+} */
 
 .product-grid-info {
     position: absolute;
@@ -1662,6 +1858,63 @@ body {
 
 .product-grid-buy-btn:hover {
     background: var(--deep-olive);
+    color: white;
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+/* Carousel Controls - Fixed Positioning */
+.product-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    /* Hidden by default */
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    z-index: 10;
+    /* High z-index to be on top */
+    color: var(--deep-olive);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.product-grid-card:hover .product-carousel-btn {
+    opacity: 1;
+    /* Show on hover */
+}
+
+.product-carousel-btn.prev {
+    left: 10px;
+}
+
+.product-carousel-btn.next {
+    right: 10px;
+}
+
+.product-carousel-btn:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.product-gallery-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    z-index: 10;
 }
 
 /* Mobile Responsiveness */
@@ -1677,5 +1930,12 @@ body {
     .product-grid-buy-btn {
         padding: 10px;
         font-size: 0.8rem;
+    }
+
+    /* Always show buttons on mobile */
+    .product-carousel-btn {
+        opacity: 1;
+        width: 32px;
+        height: 32px;
     }
 }
