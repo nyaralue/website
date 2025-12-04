@@ -843,6 +843,12 @@ async function loadCategories() {
 
         // Populate category tabs
         const filterContainer = document.querySelector('.admin-category-filter');
+        const categoryDropdown = document.getElementById('category-dropdown');
+
+        if (categoryDropdown) {
+            categoryDropdown.innerHTML = '<option value="" disabled selected>Select Category</option>';
+        }
+
         if (!filterContainer) {
             console.error('Category filter container not found!');
             return;
@@ -852,6 +858,7 @@ async function loadCategories() {
         existingButtons.forEach(btn => btn.remove());
 
         categories.forEach(cat => {
+            // Add to tabs
             const btn = document.createElement('button');
             btn.className = 'filter-btn';
             btn.dataset.category = cat.name;
@@ -866,6 +873,14 @@ async function loadCategories() {
                 displayProducts();
             });
             filterContainer.appendChild(btn);
+
+            // Add to dropdown
+            if (categoryDropdown) {
+                const option = document.createElement('option');
+                option.value = cat.name;
+                option.textContent = cat.displayName;
+                categoryDropdown.appendChild(option);
+            }
         });
 
         // Setup "All Products" button
