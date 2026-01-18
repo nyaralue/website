@@ -1,14 +1,3 @@
-import posthog from './posthog.js';
-
-posthog.init('phc_RJThScCLUSlFJOo8ruPWgKcPA4r7RlwKXjYaYa8zsFT',
-    {
-        api_host: 'https://us.i.posthog.com',
-        person_profiles: 'identified_only' // or 'always' to create profiles for anonymous users as well
-    }
-)
-
-posthog.capture('my event', { property: 'value' })
-
 const API_BASE = '/api';
 
 let allProducts = {};
@@ -367,15 +356,3 @@ function goToGalleryImage(index) {
     currentGalleryIndex = index;
     updateGalleryContent();
 }
-
-// Expose functions to window for inline HTML onclick handlers
-window.prevCardImage = prevCardImage;
-window.nextCardImage = nextCardImage;
-window.showEcommerceModal = showEcommerceModal;
-window.closeGalleryModal = closeGalleryModal;
-window.previousGalleryImage = previousGalleryImage;
-window.nextGalleryImage = nextGalleryImage;
-window.goToGalleryImage = goToGalleryImage;
-window.initProductGallery = initProductGallery;
-window.updateCardImage = updateCardImage; // Used by prev/nextCardImage, might strictly not need to be global but good practice if called from other scripts
-
