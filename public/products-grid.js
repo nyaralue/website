@@ -92,21 +92,15 @@ function displayProducts() {
         return;
     }
 
-   productsToShow.forEach(product => {
-
-    if (!trackedProductViews.has(product._id)) {
+    // 🔥 UMAMI – PRODUCT VIEW TRACKING
+    productsToShow.forEach(product => {
         umami.track("view_product", {
             product_id: product._id,
             product_name: product.name,
             category: product.category,
             price: product.price
         });
-
-        trackedProductViews.add(product._id);
-    }
-
-});
-
+    });
 
     container.innerHTML = productsToShow.map(product => {
         const media = product.media && product.media.length > 0 ? product.media[0] : null;
