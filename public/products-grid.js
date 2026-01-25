@@ -37,12 +37,16 @@ async function loadCategories() {
         });
 
         // Setup "All Products" button
-        document.querySelector('.filter-btn[data-category="all"]').addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.filter-btn[data-category="all"]').classList.add('active');
-            currentCategory = 'all';
-            displayProducts();
-        });
+        const allProductsBtn = document.querySelector('.filter-btn[data-category="all"]');
+        if (allProductsBtn) {
+            allProductsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                allProductsBtn.classList.add('active');
+                currentCategory = 'all';
+                displayProducts();
+            });
+        }
     } catch (error) {
         console.error('Error loading categories:', error);
     }
