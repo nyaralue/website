@@ -1303,16 +1303,20 @@ function cropExistingImage(button, url) {
     // Destroy previous cropper instance if exists
     if (cropper) {
         cropper.destroy();
+        cropper = null;
     }
     
-    // Initialize new cropper
-    cropper = new Cropper(image, {
-        aspectRatio: NaN, // Free aspect ratio
-        viewMode: 1,
-        autoCropArea: 0.8,
-        responsive: true,
-        background: false
-    });
+    // Wait for image to load before initializing cropper
+    image.onload = function() {
+        // Initialize new cropper
+        cropper = new Cropper(image, {
+            aspectRatio: NaN, // Free aspect ratio
+            viewMode: 1,
+            autoCropArea: 0.8,
+            responsive: true,
+            background: false
+        });
+    };
     
     // Update title and buttons for single image crop
     document.getElementById('cropper-title').textContent = 'Crop Image';
