@@ -281,6 +281,29 @@ app.get('/api/products/:category', async (req, res) => {
   }
 });
 
+// Get single product by ID (custom string id or MongoDB _id)
+app.get('/api/product/:id', async (req, res) => {
+  try {
+    await connectDB();
+    const { id } = req.params;
+    
+    // Try to find by custom id field first, then by MongoDB _id
+    let product = await Product.findOne({ id: id });
+    if (!product) {
+      product = await Product.findById(id);
+    }
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    res.json(product);
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
 // Upload files (Admin only)
 app.post('/api/upload', verifyToken, upload.array('files', 10), async (req, res) => {
   try {
