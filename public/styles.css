@@ -1862,6 +1862,56 @@ body {
     opacity: 1;
     transform: translateY(-2px);
 }
+/* Product Grid Actions */
+.product-grid-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.product-view-btn {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+    border-radius: 30px;
+    font-family: 'Lato', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-decoration: none;
+    text-align: center;
+}
+
+.product-view-btn:hover {
+    background: white;
+    color: var(--deep-olive);
+    transform: translateY(-2px);
+}
+
+.product-grid-actions .product-grid-buy-btn {
+    flex: 1;
+    margin-top: 0;
+}
+
+/* Product Card Links */
+.product-grid-image-link {
+    display: block;
+    text-decoration: none;
+}
+
+.product-name-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.product-name-link:hover .product-grid-name {
+    text-decoration: underline;
+}
 
 /* Carousel Controls - Fixed Positioning */
 .product-carousel-btn {
