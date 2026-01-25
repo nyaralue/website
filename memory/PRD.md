@@ -84,3 +84,24 @@ User requested to:
 1. Add product images via admin panel
 2. Implement search functionality
 3. Add breadcrumb navigation on product pages
+
+## Updates - 2026-01-25 (Session 2)
+
+### Admin Portal Enhancements
+- ✅ Added crop image functionality for existing images when editing products
+- ✅ Added delete image functionality for existing images when editing products  
+- ✅ Images show crop (green) and delete (red) buttons on hover
+- ✅ Cropped images show "Cropped" badge after applying crop
+
+### Product Page UI Fixes
+- ✅ Removed unnecessary gap between title and price
+- ✅ Product page starts with product name (not category badge)
+- ✅ Added breadcrumb navigation: Home / Products / Category / Product Name
+- ✅ "Product Details" section for description
+- ✅ "Available on" label above buy buttons
+- ✅ Buy buttons use FontAwesome icons instead of image logos
+
+### Files Modified
+- /app/public/product.html - Complete UI redesign with breadcrumb
+- /app/public/admin.js - Added deleteExistingMedia() and cropExistingImage() functions
+- /app/public/admin.css - Added styles for media action buttons
