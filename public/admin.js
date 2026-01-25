@@ -416,20 +416,28 @@ function editProduct(productId) {
             };
         });
 
-        // Show existing media previews
+        // Show existing media previews with delete and crop buttons
         productToEdit.media.forEach((url, index) => {
             const fileWrapper = document.createElement('div');
-            fileWrapper.className = 'file-preview-item';
+            fileWrapper.className = 'file-preview-item existing-media';
             fileWrapper.dataset.existingUrl = url;
+            fileWrapper.dataset.index = index;
 
-            if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm')) {
+            const isVideo = url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
+            
+            if (isVideo) {
                 fileWrapper.innerHTML = `
                     <div class="file-preview-video">
-                        <div class="video-icon">🎬</div>
+                        <div class="video-icon"><i class="fas fa-video"></i></div>
                         <div class="file-preview-overlay">
                             <span class="file-name">${url.split('/').pop()}</span>
                             <span class="file-type">Video</span>
                         </div>
+                    </div>
+                    <div class="media-action-buttons">
+                        <button type="button" class="media-delete-btn" onclick="deleteExistingMedia(this, '${url}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 `;
             } else {
@@ -439,6 +447,14 @@ function editProduct(productId) {
                         <div class="file-preview-overlay">
                             <span class="file-name">${url.split('/').pop()}</span>
                         </div>
+                    </div>
+                    <div class="media-action-buttons">
+                        <button type="button" class="media-crop-btn" onclick="cropExistingImage(this, '${url}')" title="Crop">
+                            <i class="fas fa-crop-alt"></i>
+                        </button>
+                        <button type="button" class="media-delete-btn" onclick="deleteExistingMedia(this, '${url}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 `;
             }
