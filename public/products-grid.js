@@ -95,33 +95,43 @@ function displayProducts() {
                 mediaHtml = `<img src="${media}" alt="${product.name}" class="product-media-${product._id}">`;
             }
         } else {
-            mediaHtml = `<div class="no-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%); color: var(--muted-moss); font-size: 3rem;">🏠</div>`;
+            mediaHtml = `<div class="no-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%); color: var(--muted-moss); font-size: 3rem;"><i class="fas fa-lightbulb"></i></div>`;
         }
 
         const allMedia = product.media || [];
         const hasMultipleImages = allMedia.length > 1;
+        const productDetailUrl = `product.html?id=${product.id || product._id}`;
 
         return `
-            <div class="product-grid-card">
-                <div class="product-grid-image" id="card-image-${product._id}">
-                    ${hasMultipleImages ? `
-                        <button class="product-carousel-btn prev" onclick="prevCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-left"></i></button>
-                        <button class="product-carousel-btn next" onclick="nextCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-right"></i></button>
-                        <div class="product-gallery-count" id="count-${product._id}">1/${allMedia.length}</div>
-                    ` : ''}
-                    
-                    ${mediaHtml}
-                </div>
+            <div class="product-grid-card" data-testid="product-card-${product.id || product._id}">
+                <a href="${productDetailUrl}" class="product-grid-image-link">
+                    <div class="product-grid-image" id="card-image-${product._id}">
+                        ${hasMultipleImages ? `
+                            <button class="product-carousel-btn prev" onclick="event.preventDefault(); prevCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-left"></i></button>
+                            <button class="product-carousel-btn next" onclick="event.preventDefault(); nextCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-right"></i></button>
+                            <div class="product-gallery-count" id="count-${product._id}">1/${allMedia.length}</div>
+                        ` : ''}
+                        
+                        ${mediaHtml}
+                    </div>
+                </a>
                 
                 <div class="product-grid-info">
                     <div class="product-grid-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
-                    <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
+                    <a href="${productDetailUrl}" class="product-name-link">
+                        <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
+                    </a>
                     ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
                     ${product.price ? `<div class="product-grid-price">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
                     
-                    <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${product.name || 'Product'}')">
-                        Buy Now
-                    </button>
+                    <div class="product-grid-actions">
+                        <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${product.id || product._id}">
+                            View Details
+                        </a>
+                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${product.name || 'Product'}')" data-testid="buy-now-${product.id || product._id}">
+                            Buy Now
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
