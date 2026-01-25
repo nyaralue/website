@@ -1538,3 +1538,91 @@ body.dark-mode .cropper-image-wrapper {
 .sidebar-remove-btn:hover {
     background: #b71c1c;
 }
+
+
+/* Media Action Buttons (Edit Product - Crop/Delete) */
+.file-preview-item {
+    position: relative;
+}
+
+.file-preview-item.existing-media {
+    border: 2px solid var(--taupe-sand);
+}
+
+.media-action-buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.file-preview-item:hover .media-action-buttons {
+    opacity: 1;
+}
+
+.media-crop-btn,
+.media-delete-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.media-crop-btn {
+    background: var(--deep-olive);
+    color: white;
+}
+
+.media-crop-btn:hover {
+    background: var(--muted-moss);
+    transform: scale(1.1);
+}
+
+.media-delete-btn {
+    background: #d32f2f;
+    color: white;
+}
+
+.media-delete-btn:hover {
+    background: #b71c1c;
+    transform: scale(1.1);
+}
+
+.cropped-badge {
+    background: #4caf50;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.cropped-badge i {
+    font-size: 0.7rem;
+}
+
+/* Improved file preview hover effect */
+.file-preview-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.file-preview-image,
+.file-preview-video {
+    position: relative;
+}
