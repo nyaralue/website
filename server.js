@@ -290,7 +290,11 @@ app.get('/api/product/:id', async (req, res) => {
     // Try to find by custom id field first, then by MongoDB _id
     let product = await Product.findOne({ id: id });
     if (!product) {
-      product = await Product.findById(id);
+      // Check if it's a valid MongoDB ObjectId before querying
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        product = await Product.findById(id);
+      }
     }
     
     if (!product) {
