@@ -1262,3 +1262,143 @@ async function addSKU(e) {
     }
 }
 
+
+
+// ===== Existing Media Management (Delete & Crop) =====
+
+// Delete existing media from the upload preview
+function deleteExistingMedia(button, url) {
+    if (!confirm('Are you sure you want to remove this image?')) {
+        return;
+    }
+    
+    const fileWrapper = button.closest('.file-preview-item');
+    
+    // Remove from uploadedFiles array
+    uploadedFiles = uploadedFiles.filter(file => {
+        if (file.isExisting && file.url === url) {
+            return false;
+        }
+        return true;
+    });
+    
+    // Remove the preview element
+    fileWrapper.remove();
+    
+    showNotification('Image removed. Click "Save Product" to apply changes.', 'info');
+}
+
+// Crop existing image
+let cropExistingImageUrl = null;
+
+function cropExistingImage(button, url) {
+    cropExistingImageUrl = url;
+    
+    // Open cropper modal with the existing image
+    document.getElementById('cropper-modal').style.display = 'flex';
+    
+    const image = document.getElementById('cropper-image');
+    image.src = url;
+    
+    // Destroy previous cropper instance if exists
+    if (cropper) {
+        cropper.destroy();
+    }
+    
+    // Initialize new cropper
+    cropper = new Cropper(image, {
+        aspectRatio: NaN, // Free aspect ratio
+        viewMode: 1,
+        autoCropArea: 0.8,
+        responsive: true,
+        background: false
+    });
+    
+    // Update title and buttons for single image crop
+    document.getElementById('cropper-title').textContent = 'Crop Image';
+    document.getElementById('apply-crop').style.display = 'block';
+    document.getElementById('done-crop').style.display = 'none';
+    document.getElementById('skip-crop').style.display = 'none';
+    
+    // Hide navigation buttons for single image
+    document.getElementById('cropper-prev').style.display = 'none';
+    document.getElementById('cropper-next').style.display = 'none';
+    document.getElementById('cropper-indicators').innerHTML = '';
+    
+    // Change apply button behavior for existing image
+    document.getElementById('apply-crop').onclick = applyExistingImageCrop;
+}
+
+function applyExistingImageCrop() {
+    if (!cropper || !cropExistingImageUrl) return;
+    
+    // Get cropped canvas
+    const canvas = cropper.getCroppedCanvas({
+        maxWidth: 1920,
+        maxHeight: 1080,
+        fillColor: '#fff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+    
+    // Convert to blob and create a new file
+    canvas.toBlob((blob) => {
+        if (blob) {
+            const croppedFile = new File([blob], 
+                `cropped_${cropExistingImageUrl.split('/').pop()}`,
+                { type: 'image/jpeg' }
+            );
+            
+            // Replace the existing URL with the new cropped file in uploadedFiles
+            const index = uploadedFiles.findIndex(f => f.isExisting && f.url === cropExistingImageUrl);
+            if (index !== -1) {
+                uploadedFiles[index] = croppedFile;
+            }
+            
+            // Update the preview with the cropped image
+            const previewItems = document.querySelectorAll('.file-preview-item');
+            previewItems.forEach(item => {
+                if (item.dataset.existingUrl === cropExistingImageUrl) {
+                    const img = item.querySelector('img');
+                    if (img) {
+                        img.src = canvas.toDataURL('image/jpeg', 0.9);
+                    }
+                    // Remove existing URL marker since it's now a new file
+                    delete item.dataset.existingUrl;
+                    item.classList.remove('existing-media');
+                    // Update action buttons
+                    const actionBtns = item.querySelector('.media-action-buttons');
+                    if (actionBtns) {
+                        actionBtns.innerHTML = `
+                            <span class="cropped-badge"><i class="fas fa-check"></i> Cropped</span>
+                        `;
+                    }
+                }
+            });
+            
+            closeCropperForExisting();
+            showNotification('Image cropped successfully! Click "Save Product" to upload.', 'success');
+        }
+    }, 'image/jpeg', 0.9);
+}
+
+function closeCropperForExisting() {
+    document.getElementById('cropper-modal').style.display = 'none';
+    
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    
+    // Reset cropper UI for batch mode
+    document.getElementById('skip-crop').style.display = 'block';
+    document.getElementById('cropper-prev').style.display = 'block';
+    document.getElementById('cropper-next').style.display = 'block';
+    document.getElementById('apply-crop').onclick = applyCrop;
+    
+    cropExistingImageUrl = null;
+}
+
+// Make functions globally available
+window.deleteExistingMedia = deleteExistingMedia;
+window.cropExistingImage = cropExistingImage;
