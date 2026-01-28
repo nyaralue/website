@@ -1353,20 +1353,27 @@ function cropExistingImage(button, url) {
 function applyExistingImageCrop() {
     if (!cropper || !cropExistingImageUrl) return;
     
-    // Get cropped canvas
+    // Get cropped canvas with high quality settings
     const canvas = cropper.getCroppedCanvas({
-        maxWidth: 1920,
-        maxHeight: 1080,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        minWidth: 200,
+        minHeight: 200,
         fillColor: '#fff',
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high'
     });
     
-    // Convert to blob and create a new file
+    if (!canvas) {
+        showNotification('Error: Could not crop image. Please try again.', 'error');
+        return;
+    }
+    
+    // Convert to blob and create a new file with high quality
     canvas.toBlob((blob) => {
         if (blob) {
             const croppedFile = new File([blob], 
-                `cropped_${cropExistingImageUrl.split('/').pop()}`,
+                `cropped_${Date.now()}_${cropExistingImageUrl.split('/').pop().replace(/[^a-zA-Z0-9.]/g, '_')}`,
                 { type: 'image/jpeg' }
             );
             
@@ -1376,13 +1383,13 @@ function applyExistingImageCrop() {
                 uploadedFiles[index] = croppedFile;
             }
             
-            // Update the preview with the cropped image
+            // Update the preview with the cropped image (high quality preview)
             const previewItems = document.querySelectorAll('.file-preview-item');
             previewItems.forEach(item => {
                 if (item.dataset.existingUrl === cropExistingImageUrl) {
                     const img = item.querySelector('img');
                     if (img) {
-                        img.src = canvas.toDataURL('image/jpeg', 0.9);
+                        img.src = canvas.toDataURL('image/jpeg', 0.95);
                     }
                     // Remove existing URL marker since it's now a new file
                     delete item.dataset.existingUrl;
@@ -1399,8 +1406,10 @@ function applyExistingImageCrop() {
             
             closeCropperForExisting();
             showNotification('Image cropped successfully! Click "Save Product" to upload.', 'success');
+        } else {
+            showNotification('Error: Could not process cropped image.', 'error');
         }
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.92);
 }
 
 function closeCropperForExisting() {
