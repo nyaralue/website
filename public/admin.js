@@ -1298,7 +1298,6 @@ function cropExistingImage(button, url) {
     document.getElementById('cropper-modal').style.display = 'flex';
     
     const image = document.getElementById('cropper-image');
-    image.src = url;
     
     // Destroy previous cropper instance if exists
     if (cropper) {
@@ -1306,16 +1305,34 @@ function cropExistingImage(button, url) {
         cropper = null;
     }
     
+    // Set the image source and wait for it to load
+    image.src = '';
+    image.src = url;
+    
     // Wait for image to load before initializing cropper
     image.onload = function() {
-        // Initialize new cropper
-        cropper = new Cropper(image, {
-            aspectRatio: NaN, // Free aspect ratio
-            viewMode: 1,
-            autoCropArea: 0.8,
-            responsive: true,
-            background: false
-        });
+        // Small delay to ensure image is fully rendered
+        setTimeout(() => {
+            // Initialize new cropper with better quality settings
+            cropper = new Cropper(image, {
+                aspectRatio: NaN, // Free aspect ratio
+                viewMode: 1,
+                autoCropArea: 0.9,
+                responsive: true,
+                background: true,
+                modal: true,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: true,
+                minContainerWidth: 300,
+                minContainerHeight: 300,
+                minCropBoxWidth: 50,
+                minCropBoxHeight: 50
+            });
+        }, 100);
     };
     
     // Update title and buttons for single image crop
