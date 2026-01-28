@@ -86,49 +86,89 @@
 
 .product-detail-page .product-thumbnails {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     margin-top: 1rem;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 0.5rem;
     scrollbar-width: thin;
+    scrollbar-color: var(--muted-moss) transparent;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.product-detail-page .product-thumbnails::-webkit-scrollbar {
+    height: 4px;
+}
+
+.product-detail-page .product-thumbnails::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.product-detail-page .product-thumbnails::-webkit-scrollbar-thumb {
+    background: var(--muted-moss);
+    border-radius: 4px;
 }
 
 .product-detail-page .product-thumbnail {
-    width: 70px;
-    height: 70px;
-    min-width: 70px;
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    flex-shrink: 0;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
     opacity: 0.6;
     transition: all 0.3s ease;
-    flex-shrink: 0;
     border: 2px solid transparent;
+}
+
+.product-detail-page .product-thumbnail.active,
+.product-detail-page .product-thumbnail:hover {
+    opacity: 1;
+    border-color: var(--deep-olive);
+}
+
+.product-detail-page .product-thumbnail img,
+.product-detail-page .product-thumbnail video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* Mobile Product Detail Fixes */
 @media (max-width: 768px) {
     .product-detail-page .product-main-image {
-        max-height: 350px;
+        max-height: 300px;
+        aspect-ratio: 4/3;
+    }
+    
+    .product-detail-page .product-thumbnails {
+        gap: 0.4rem;
     }
     
     .product-detail-page .product-thumbnail {
-        width: 60px;
-        height: 60px;
-        min-width: 60px;
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
     }
     
     .product-detail-page .breadcrumb {
-        font-size: 0.8rem;
-        gap: 0.3rem;
+        font-size: 0.75rem;
+        gap: 0.25rem;
     }
     
     .product-detail-page .product-title {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
     
     .product-detail-page .product-price {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+    }
+    
+    .product-detail-page .product-detail-container {
+        padding: 1rem;
+        gap: 1.5rem;
     }
 }
 
