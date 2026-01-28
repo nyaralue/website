@@ -780,6 +780,32 @@ body.dark-mode .cropper-image-wrapper {
     background-color: #1a1a1a;
 }
 
+/* Override Cropper.js default transparent/checkered background */
+.cropper-container {
+    background-color: #2a2a2a !important;
+}
+
+.cropper-bg {
+    background-image: none !important;
+    background-color: #2a2a2a !important;
+}
+
+.cropper-modal {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.cropper-view-box {
+    outline-color: rgba(255, 255, 255, 0.75);
+}
+
+.cropper-line {
+    background-color: rgba(255, 255, 255, 0.75);
+}
+
+.cropper-point {
+    background-color: rgba(255, 255, 255, 0.75);
+}
+
 .cropper-nav-btn {
     position: absolute;
     top: 50%;
