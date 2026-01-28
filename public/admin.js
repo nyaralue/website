@@ -644,7 +644,8 @@ function showCurrentImageInCropper() {
             viewMode: 1,
             autoCropArea: 0.8,
             responsive: true,
-            background: false
+            background: false,
+            checkCrossOrigin: false  // Allow cross-origin images
         });
 
         // Update title
