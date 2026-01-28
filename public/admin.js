@@ -1319,7 +1319,7 @@ function cropExistingImage(button, url) {
                 viewMode: 1,
                 autoCropArea: 0.9,
                 responsive: true,
-                background: true,
+                background: false,  // Disable checkered background
                 modal: true,
                 guides: true,
                 center: true,
@@ -1330,7 +1330,8 @@ function cropExistingImage(button, url) {
                 minContainerWidth: 300,
                 minContainerHeight: 300,
                 minCropBoxWidth: 50,
-                minCropBoxHeight: 50
+                minCropBoxHeight: 50,
+                checkCrossOrigin: false  // Allow cross-origin images
             });
         }, 100);
     };
