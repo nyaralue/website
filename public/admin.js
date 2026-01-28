@@ -1413,18 +1413,32 @@ function applyExistingImageCrop() {
 }
 
 function closeCropperForExisting() {
-    document.getElementById('cropper-modal').style.display = 'none';
+    // Immediately hide the modal
+    const cropperModal = document.getElementById('cropper-modal');
+    if (cropperModal) {
+        cropperModal.style.display = 'none';
+    }
     
+    // Destroy cropper instance
     if (cropper) {
-        cropper.destroy();
+        try {
+            cropper.destroy();
+        } catch (e) {
+            console.log('Cropper already destroyed');
+        }
         cropper = null;
     }
     
     // Reset cropper UI for batch mode
-    document.getElementById('skip-crop').style.display = 'block';
-    document.getElementById('cropper-prev').style.display = 'block';
-    document.getElementById('cropper-next').style.display = 'block';
-    document.getElementById('apply-crop').onclick = applyCrop;
+    const skipBtn = document.getElementById('skip-crop');
+    const prevBtn = document.getElementById('cropper-prev');
+    const nextBtn = document.getElementById('cropper-next');
+    const applyBtn = document.getElementById('apply-crop');
+    
+    if (skipBtn) skipBtn.style.display = 'block';
+    if (prevBtn) prevBtn.style.display = 'block';
+    if (nextBtn) nextBtn.style.display = 'block';
+    if (applyBtn) applyBtn.onclick = applyCrop;
     
     cropExistingImageUrl = null;
 }
