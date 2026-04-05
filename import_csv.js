@@ -8,7 +8,7 @@ const Product = require('./models/Product');
 const Category = require('./models/Category');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://info_db_user:DtBE84LlLUD6yaEg@free.ltju6fx.mongodb.net/?appName=Free';
-const CSV_FILE_PATH = '/Users/Nikhil/Downloads/Pending catalog - website upload.csv';
+const CSV_FILE_PATH = '/Users/Nikhil/Downloads/Pending catalog - pending (1).csv';
 
 async function importCSV() {
     try {
@@ -17,9 +17,9 @@ async function importCSV() {
         console.log('Connected to MongoDB.');
 
         // Delete all exiting products
-        console.log('Deleting all existing products...');
-        const deleteResult = await Product.deleteMany({});
-        console.log(`Deleted ${deleteResult.deletedCount} existing products.`);
+        console.log('Skipping deletion of existing products as requested...');
+        // const deleteResult = await Product.deleteMany({});
+        // console.log(`Deleted ${deleteResult.deletedCount} existing products.`);
 
         const productsToInsert = [];
         const uniqueCategories = new Set();
@@ -34,7 +34,8 @@ async function importCSV() {
                 }))
                 .on('data', (row) => {
                     // Check if row has enough data to be a product
-                    if (!row['Name'] || !row['Product ID']) return;
+                    const identifier = row['varient ID'] || row['Product ID'];
+                    if (!row['Name'] || !identifier) return;
 
                     const priceStr = row['selling price'] ? row['selling price'].replace(/,/g, '') : '0';
                     const catName = row['Category'] ? row['Category'].trim() : 'uncategorized';
