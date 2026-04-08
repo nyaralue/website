@@ -251,7 +251,7 @@ app.get('/api/products', async (req, res) => {
   try {
     await connectDB();
     console.log('Fetching products...');
-    const products = await Product.find();
+    const products = await Product.find().sort({ sku: 1 });
     console.log(`Found ${products.length} products`);
 
     // Group by category to match old structure: { categories: { light: [], ... } }
@@ -274,7 +274,7 @@ app.get('/api/products/:category', async (req, res) => {
   try {
     await connectDB();
     const category = req.params.category;
-    const products = await Product.find({ category });
+    const products = await Product.find({ category }).sort({ sku: 1 });
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch products' });
