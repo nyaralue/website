@@ -288,8 +288,26 @@ app.get('/api/products', async (req, res) => {
   try {
     await connectDB();
     console.log('Fetching products...');
-    const products = await Product.find().sort({ sku: 1 });
+    let products = await Product.find().sort({ sku: 1 });
     console.log(`Found ${products.length} products`);
+
+    // Define custom category order
+    const categoryOrder = [
+      'wall-lights',
+      'chandelier',
+      'garden-&-pendant-lights',
+      'rugs-&-carpets',
+      'cushion-covers'
+    ];
+
+    // Sort products by category order first (stable sort maintains sku order)
+    products.sort((a, b) => {
+      const idxA = categoryOrder.indexOf(a.category);
+      const idxB = categoryOrder.indexOf(b.category);
+      const orderA = idxA !== -1 ? idxA : 999;
+      const orderB = idxB !== -1 ? idxB : 999;
+      return orderA - orderB;
+    });
 
     // Group by category to match old structure: { categories: { light: [], ... } }
     const grouped = { categories: {} };
@@ -422,7 +440,24 @@ app.delete('/api/products/:category/:id', verifyToken, async (req, res) => {
 app.get('/api/categories', async (req, res) => {
   try {
     await connectDB();
-    const categories = await Category.find().sort({ createdAt: 1 });
+    const categories = await Category.find();
+
+    const categoryOrder = [
+      'wall-lights',
+      'chandelier',
+      'garden-&-pendant-lights',
+      'rugs-&-carpets',
+      'cushion-covers'
+    ];
+
+    categories.sort((a, b) => {
+      const idxA = categoryOrder.indexOf(a.name);
+      const idxB = categoryOrder.indexOf(b.name);
+      const orderA = idxA !== -1 ? idxA : 999;
+      const orderB = idxB !== -1 ? idxB : 999;
+      return orderA - orderB;
+    });
+
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
