@@ -88,6 +88,43 @@ const upload = multer({ storage: storage });
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+// Route for product.html to inject OG tags
+app.get('/product.html', async (req, res) => {
+  try {
+    const filePath = path.join(__dirname, 'public', 'product.html');
+    let html = await fs.readFile(filePath, 'utf8');
+    
+    const productId = req.query.id;
+    if (productId) {
+      await connectDB();
+      const product = await Product.findOne({ id: productId }) || await Product.findOne({ sku: productId });
+      
+      if (product) {
+        const title = product.name || 'Nyara Luxe Product';
+        const description = (product.description || 'Discover luxury home products from Nyara Luxe.').substring(0, 150);
+        const image = (product.media && product.media.length > 0) ? product.media[0] : 'https://website-ppur.vercel.app/new%20logo.png';
+        
+        const ogTags = `
+    <meta property="og:title" content="\${title.replace(/"/g, '&quot;')}" />
+    <meta property="og:description" content="\${description.replace(/"/g, '&quot;')}" />
+    <meta property="og:image" content="\${image}" />
+    <meta property="og:type" content="product" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="\${image}" />
+        `;
+        
+        // Inject right before </head>
+        html = html.replace('</head>', `\${ogTags}</head>`);
+      }
+    }
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving dynamic product.html:', error);
+    // Fallback to static file
+    res.sendFile(path.join(__dirname, 'public', 'product.html'));
+  }
+});
+
 // Use absolute path for static files to ensure Vercel finds them
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
