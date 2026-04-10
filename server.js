@@ -91,7 +91,7 @@ app.use(bodyParser.json());
 // Route for product.html to inject OG tags
 app.get('/product.html', async (req, res) => {
   try {
-    const filePath = path.join(__dirname, 'public', 'product.html');
+    const filePath = path.join(__dirname, 'public', 'product-template.html');
     let html = await fs.readFile(filePath, 'utf8');
     
     const productId = req.query.id;
@@ -121,7 +121,7 @@ app.get('/product.html', async (req, res) => {
   } catch (error) {
     console.error('Error serving dynamic product.html:', error);
     // Fallback to static file
-    res.sendFile(path.join(__dirname, 'public', 'product.html'));
+    res.sendFile(path.join(__dirname, 'public', 'product-template.html'));
   }
 });
 
