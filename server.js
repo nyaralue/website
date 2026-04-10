@@ -102,7 +102,12 @@ app.get('/product.html', async (req, res) => {
       if (product) {
         const title = product.name || 'Nyara Luxe Product';
         const description = (product.description || 'Discover luxury home products from Nyara Luxe.').substring(0, 150);
-        const image = (product.media && product.media.length > 0) ? product.media[0] : 'https://website-ppur.vercel.app/new%20logo.png';
+        let image = (product.media && product.media.length > 0) ? product.media[0] : 'https://website-ppur.vercel.app/new%20logo.png';
+        
+        // Format Cloudinary images for WhatsApp (Must be < 300KB and ideally JPG)
+        if (image.includes('res.cloudinary.com') && image.includes('/upload/')) {
+          image = image.replace('/upload/', '/upload/w_600,q_auto:low,f_jpg/');
+        }
         
         const ogTags = `
     <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
