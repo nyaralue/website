@@ -105,16 +105,16 @@ app.get('/product.html', async (req, res) => {
         const image = (product.media && product.media.length > 0) ? product.media[0] : 'https://website-ppur.vercel.app/new%20logo.png';
         
         const ogTags = `
-    <meta property="og:title" content="\${title.replace(/"/g, '&quot;')}" />
-    <meta property="og:description" content="\${description.replace(/"/g, '&quot;')}" />
-    <meta property="og:image" content="\${image}" />
+    <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+    <meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />
+    <meta property="og:image" content="${image}" />
     <meta property="og:type" content="product" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="\${image}" />
+    <meta name="twitter:image" content="${image}" />
         `;
         
         // Inject right before </head>
-        html = html.replace('</head>', `\${ogTags}</head>`);
+        html = html.replace('</head>', `${ogTags}</head>`);
       }
     }
     res.send(html);
