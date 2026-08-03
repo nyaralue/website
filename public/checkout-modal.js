@@ -168,7 +168,29 @@ function handleCheckoutSubmit(event) {
         locationLink: location
     };
 
-    // Immediately post order details to backend to notify info@nyaraluxe.in
+    // 1. Send instant email notification to info@nyaraluxe.in via FormSubmit (Zero password/setup required)
+    fetch('https://formsubmit.co/ajax/info@nyaraluxe.in', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            _subject: `🛒 New Nyara Luxe Order: ${currentCheckoutProduct ? currentCheckoutProduct.name : 'Product'}`,
+            _template: 'table',
+            "Product Name": currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
+            "Offer Price": `₹${currentCheckoutProduct ? currentCheckoutProduct.price : 'N/A'} (20% OFF + Free Delivery)`,
+            "Customer Name": name,
+            "Mobile Phone": phone,
+            "Delivery Address": address,
+            "Pincode": pincode,
+            "Email Address": email || "Not provided",
+            "Google Maps Location": location || "Not provided",
+            "Date & Time": new Date().toLocaleString()
+        })
+    }).catch(err => console.error('FormSubmit email error:', err));
+
+    // 2. Immediately post order details to backend for MongoDB & Google Sheets
     fetch('/api/checkout-submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
