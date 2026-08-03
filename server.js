@@ -650,7 +650,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Function to send email notification for orders and inquiries to info@nyaraluxe.in
+// Function to send email notification for orders and inquiries to info@nyaraluxe.in (Triggering Vercel Redeploy)
 async function sendNotificationEmail(orderData) {
   try {
     const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
