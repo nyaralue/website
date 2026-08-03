@@ -163,7 +163,7 @@ async function getGoogleSheetsClient() {
 // Function to append data to Google Sheet
 async function appendToGoogleSheet(data) {
   try {
-    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec';
     if (webhookUrl) {
       try {
         await fetch(webhookUrl, {
