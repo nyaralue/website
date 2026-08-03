@@ -17,6 +17,7 @@
     <!-- Google Analytics 4 -->
     <script src="ga4.js"></script>
     <script src="razorpay.js"></script>
+    <script src="checkout-modal.js"></script>
     <style>
         /* Product Detail Page Styles */
         .product-detail-page {
@@ -576,16 +577,18 @@
 
             // Generate buy buttons
             const priceNum = parseFloat(product.price) || 0;
-            const discountedPrice = priceNum > 0 ? Math.round(priceNum * 0.85) : 0;
+            const mrpPrice = Math.round(priceNum * 1.30); // 30% increased MRP
+            const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : 0; // 20% OFF
 
             let buyButtonsHtml = `
-                <button type="button" class="buy-button nyara-direct-buy-btn" onclick="payWithRazorpay('${(product.name || 'Product').replace(/'/g, "\\'")}', ${priceNum}, '${product.id || product._id}')" style="background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: white; border: 1px solid #D4AF37; padding: 14px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(44, 62, 46, 0.3);">
+                <button type="button" class="buy-button nyara-direct-buy-btn" onclick="openCheckoutModal('${(product.name || 'Product').replace(/'/g, "\\'")}', ${priceNum}, '${product.id || product._id}')" style="background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: white; border: 1px solid #D4AF37; padding: 14px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(44, 62, 46, 0.3);">
                     <span style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-crown" style="color: #D4AF37;"></i>
-                        <span>Buy from Nyara Luxe (15% OFF)</span>
+                        <span>Buy from Nyara Luxe (20% OFF)</span>
+                        <small style="background: #27ae60; color: #FFF; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">FREE Delivery</small>
                     </span>
                     <span>
-                        ${priceNum > 0 ? `<s style="opacity: 0.75; font-size: 0.85em; margin-right: 6px;">₹${priceNum.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.1em;">₹${discountedPrice.toLocaleString()}</strong>` : ''}
+                        ${mrpPrice > 0 ? `<s style="opacity: 0.75; font-size: 0.85em; margin-right: 6px;">₹${mrpPrice.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.1em;">₹${discountedPrice.toLocaleString()}</strong>` : ''}
                     </span>
                 </button>
             `;
@@ -631,7 +634,7 @@
                             </div>
                         </div>
                         
-                        <p class="product-price" data-testid="product-price">₹${parseFloat(product.price).toLocaleString()}</p>
+                        <p class="product-price" data-testid="product-price"><s style="opacity: 0.6; font-size: 0.85em; font-weight: normal; margin-right: 8px;">₹${mrpPrice.toLocaleString()}</s><strong style="color: #2C3E2E;">₹${discountedPrice.toLocaleString()}</strong> <span style="font-size: 0.8rem; background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 700; margin-left: 6px; vertical-align: middle;">FREE Delivery</span></p>
                         
                         ${product.description ? `
                         <div class="product-description-section">
