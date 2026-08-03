@@ -1,4 +1,4 @@
-// Razorpay Live Integration for Nyara Luxe
+// Razorpay Live Integration for Nyara Luxe (20% OFF + Prefilled Customer Details)
 const RAZORPAY_KEY_ID = 'rzp_live_TLFLvqgzwxhIg3';
 
 // Dynamically load Razorpay SDK if not present
@@ -12,9 +12,9 @@ const RAZORPAY_KEY_ID = 'rzp_live_TLFLvqgzwxhIg3';
     }
 })();
 
-function payWithRazorpay(productName, originalPrice, productId) {
-    const priceNum = parseFloat(originalPrice) || 0;
-    const discountedPrice = Math.round(priceNum * 0.85); // 15% OFF from MRP
+function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {}) {
+    const mrp = parseFloat(mrpPrice) || 0;
+    const discountedPrice = Math.round(mrp * 0.80); // 20% OFF from MRP
     const amountInPaise = discountedPrice > 0 ? discountedPrice * 100 : 0;
 
     if (!window.Razorpay) {
@@ -32,13 +32,35 @@ function payWithRazorpay(productName, originalPrice, productId) {
         amount: amountInPaise,
         currency: 'INR',
         name: 'Nyara Luxe',
-        description: `Order: ${productName} (15% OFF)`,
+        description: `Order: ${productName} (20% OFF + Free Delivery)`,
         image: 'Nyara_Home_Visiting_Card-removebg-preview.png',
+        prefill: {
+            name: customerDetails.name || '',
+            contact: customerDetails.phone || '',
+            email: customerDetails.email || ''
+        },
         handler: function (response) {
             const paymentId = response.razorpay_payment_id;
-            alert(`🎉 Payment Successful!\nPayment ID: ${paymentId}\nThank you for ordering ${productName} from Nyara Luxe.`);
             
-            // GA4 Purchase Tracking Event
+            // Save order & customer details to backend
+            const orderPayload = {
+                productName: productName,
+                productSku: productId || 'unknown',
+                name: customerDetails.name || 'Customer',
+                email: customerDetails.email || '',
+                query: `ORDER SUCCESSFUL! Payment ID: ${paymentId}. Address: ${customerDetails.address || ''}, Location: ${customerDetails.locationLink || 'N/A'}, Amount Paid: ₹${discountedPrice}`,
+                timestamp: new Date().toISOString()
+            };
+
+            fetch('/api/help-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderPayload)
+            }).catch(err => console.error('Order save error:', err));
+
+            alert(`🎉 Payment Successful!\nPayment ID: ${paymentId}\n\nThank you ${customerDetails.name || ''}! Your order for "${productName}" has been placed with FREE delivery.`);
+            
+            // GA4 Purchase Event Tracking
             if (window.trackGAEvent) {
                 window.trackGAEvent('purchase', {
                     transaction_id: paymentId,
@@ -52,7 +74,7 @@ function payWithRazorpay(productName, originalPrice, productId) {
                 });
             }
 
-            // Close modal if open
+            // Close platform modal if open
             const modal = document.getElementById('ecommerce-modal');
             if (modal) modal.classList.remove('show');
         },
@@ -63,7 +85,7 @@ function payWithRazorpay(productName, originalPrice, productId) {
 
     const rzp = new window.Razorpay(options);
     rzp.on('payment.failed', function (response) {
-        alert(`Payment Failed: ${response.error.description || 'Transaction cancelled'}`);
+        alert(`Payment Cancelled or Failed: ${response.error.description || ''}`);
     });
     rzp.open();
 }
