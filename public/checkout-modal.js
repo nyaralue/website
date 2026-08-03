@@ -168,7 +168,23 @@ function handleCheckoutSubmit(event) {
         locationLink: location
     };
 
-    // 1. Send instant email notification to info@nyaraluxe.in via FormSubmit (Zero password/setup required)
+    // 1. Send instant notification directly to Google Sheet Webhook
+    fetch('https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            productName: currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
+            name: name,
+            phone: phone,
+            address: address,
+            pincode: pincode,
+            email: email || '',
+            locationLink: location || '',
+            query: `Order Form Submitted. Price: ₹${currentCheckoutProduct ? currentCheckoutProduct.price : ''}`
+        })
+    }).catch(err => console.error('Google Sheet webhook error:', err));
+
+    // 2. Send instant email notification to info@nyaraluxe.in via FormSubmit
     fetch('https://formsubmit.co/ajax/info@nyaraluxe.in', {
         method: 'POST',
         headers: {
@@ -190,7 +206,7 @@ function handleCheckoutSubmit(event) {
         })
     }).catch(err => console.error('FormSubmit email error:', err));
 
-    // 2. Immediately post order details to backend for MongoDB & Google Sheets
+    // 3. Immediately post order details to backend for MongoDB & Backup
     fetch('/api/checkout-submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
