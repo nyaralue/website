@@ -163,22 +163,38 @@ async function getGoogleSheetsClient() {
 // Function to append data to Google Sheet
 async function appendToGoogleSheet(data) {
   try {
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    if (webhookUrl) {
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        console.log('Successfully sent order data to Google Sheet Webhook');
+      } catch (err) {
+        console.error('Error posting to Google Sheet Webhook:', err.message);
+      }
+    }
+
     const sheets = await getGoogleSheetsClient();
 
     if (!sheets) {
-      console.log('Google Sheets authentication failed, saving to MongoDB');
+      console.log('Google Sheets authentication key not found, saving to MongoDB');
       return await saveToMongoDB(data);
     }
 
     const values = [
       [
-        data.id || '',
+        new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         data.productName || '',
-        data.productSku || '',
         data.name || '',
+        data.phone || '',
+        data.address || '',
+        data.pincode || '',
         data.email || '',
-        data.query || '',
-        data.timestamp || new Date().toISOString()
+        data.locationLink || '',
+        data.query || ''
       ]
     ];
 
