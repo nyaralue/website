@@ -129,7 +129,7 @@ function displayProducts() {
                         <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${product.id || product._id}">
                             View Details
                         </a>
-                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${product.name || 'Product'}')" data-testid="buy-now-${product.id || product._id}">
+                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${(product.name || 'Product').replace(/'/g, "\\'")}', ${product.price || 0})" data-testid="buy-now-${product.id || product._id}">
                             Buy Now
                         </button>
                     </div>
@@ -208,15 +208,43 @@ function showEmptyState(message) {
 }
 
 // Show ecommerce platform selection modal
-function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
+function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price) {
     const modal = document.getElementById('ecommerce-modal');
     const modalTitle = document.getElementById('ecommerce-modal-title');
     const platformsContainer = document.getElementById('ecommerce-platforms');
 
-    modalTitle.textContent = `Buy ${productName}`;
+    modalTitle.textContent = `Purchase ${productName}`;
     platformsContainer.innerHTML = '';
 
     let hasLinks = false;
+    const priceNum = parseFloat(price) || 0;
+    const discountedPrice = priceNum > 0 ? Math.round(priceNum * 0.85) : null;
+
+    // 1. Featured Option: Buy from Nyara Luxe (15% OFF from MRP)
+    hasLinks = true;
+    const nyaraBtn = document.createElement('button');
+    nyaraBtn.className = 'ecommerce-platform-btn nyara-luxe-direct-btn';
+    nyaraBtn.style.cssText = 'background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: #FFF; border: 1px solid #D4AF37; margin-bottom: 12px; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 14px 16px; border-radius: 8px; width: 100%; box-shadow: 0 4px 12px rgba(44, 62, 46, 0.25); transition: all 0.2s;';
+    
+    nyaraBtn.innerHTML = `
+        <span style="display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-crown" style="color: #D4AF37; font-size: 1.1rem;"></i>
+            <span>Buy from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; font-weight: 700;">15% OFF</small></span>
+        </span>
+        <span style="font-size: 0.95rem;">
+            ${priceNum > 0 ? `<s style="opacity: 0.65; margin-right: 6px; font-size: 0.85em;">₹${priceNum.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.05em;">₹${discountedPrice.toLocaleString()}</strong>` : '<span style="color: #D4AF37;">15% OFF</span>'}
+        </span>
+    `;
+
+    nyaraBtn.addEventListener('click', () => {
+        if (window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', productName);
+        if (window.payWithRazorpay) {
+            window.payWithRazorpay(productName, priceNum);
+        } else {
+            alert('Payment gateway is loading. Please try again.');
+        }
+    });
+    platformsContainer.appendChild(nyaraBtn);
 
     if (amazonLink) {
         hasLinks = true;
