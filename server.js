@@ -163,7 +163,7 @@ async function getGoogleSheetsClient() {
 // Function to append data to Google Sheet (ONLY Google Sheet, no MongoDB)
 async function appendToGoogleSheet(data) {
   try {
-    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec';
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbztxp93OAPqqv1UADuliCrmpjM1aYqXDntwiviPbFpqxXoYwvcaTqI04aVkb66yiT05BA/exec';
     if (webhookUrl) {
       try {
         await fetch(webhookUrl, {
