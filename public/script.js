@@ -225,6 +225,9 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         amazonBtn.target = '_blank';
         amazonBtn.className = 'ecommerce-platform-btn';
         amazonBtn.innerHTML = `<span>Buy on Amazon</span>`;
+        amazonBtn.addEventListener('click', () => {
+            if (window.trackPlatformClick) window.trackPlatformClick('Amazon', productName);
+        });
         platformsContainer.appendChild(amazonBtn);
     }
 
@@ -235,6 +238,9 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         flipkartBtn.target = '_blank';
         flipkartBtn.className = 'ecommerce-platform-btn';
         flipkartBtn.innerHTML = `<span>Buy on Flipkart</span>`;
+        flipkartBtn.addEventListener('click', () => {
+            if (window.trackPlatformClick) window.trackPlatformClick('Flipkart', productName);
+        });
         platformsContainer.appendChild(flipkartBtn);
     }
 
@@ -245,6 +251,9 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName) {
         meeshoBtn.target = '_blank';
         meeshoBtn.className = 'ecommerce-platform-btn';
         meeshoBtn.innerHTML = `<span>Buy on Meesho</span>`;
+        meeshoBtn.addEventListener('click', () => {
+            if (window.trackPlatformClick) window.trackPlatformClick('Meesho', productName);
+        });
         platformsContainer.appendChild(meeshoBtn);
     }
 
