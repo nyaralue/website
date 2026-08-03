@@ -88,6 +88,12 @@ const upload = multer({ storage: storage });
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Google Search Console verification route
+app.get('/googlecc3ef0e6b05ddc02.html', (req, res) => {
+  res.send('google-site-verification: googlecc3ef0e6b05ddc02.html');
+});
+
 // Route for product.html to inject OG tags
 app.get('/product.html', async (req, res) => {
   try {
