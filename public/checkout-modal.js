@@ -59,8 +59,8 @@
                         </div>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #2C3E2E;">Email Address <span style="font-size:0.75rem; color:#777;">(Optional)</span></label>
-                            <input type="email" id="cust-email" placeholder="example@email.com" style="width: 100%; padding: 10px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;">
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #2C3E2E;">Email Address <span style="color:red;">*</span> <span style="font-size:0.75rem; color:#666; font-weight: normal;">(Your bill will be shared on this email)</span></label>
+                            <input type="email" id="cust-email" required placeholder="example@email.com" style="width: 100%; padding: 10px 12px; border: 1px solid #CCC; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;">
                         </div>
 
                         <div style="margin-bottom: 16px;">
@@ -154,8 +154,8 @@ function handleCheckoutSubmit(event) {
     const email = document.getElementById('cust-email').value.trim();
     const location = document.getElementById('cust-location').value.trim();
 
-    if (!name || !phone || !address || !pincode) {
-        alert('Please fill in all required fields.');
+    if (!name || !phone || !address || !pincode || !email) {
+        alert('Please fill in all required fields including your Email Address.');
         return;
     }
 
