@@ -168,15 +168,33 @@ function handleCheckoutSubmit(event) {
         locationLink: location
     };
 
+    // Immediately post order details to backend to notify info@nyaraluxe.in
+    fetch('/api/checkout-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            productName: currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
+            productSku: currentCheckoutProduct ? currentCheckoutProduct.productId : 'N/A',
+            name: name,
+            phone: phone,
+            address: address,
+            pincode: pincode,
+            email: email,
+            locationLink: location,
+            query: `NEW ORDER FORM SUBMITTED! Customer: ${name}, Phone: ${phone}, Address: ${address}, Pincode: ${pincode}, Location: ${location || 'N/A'}, Item: ${currentCheckoutProduct ? currentCheckoutProduct.name : ''}, Price: ₹${currentCheckoutProduct ? currentCheckoutProduct.price : ''}`,
+            timestamp: new Date().toISOString()
+        })
+    }).catch(err => console.error('Checkout notification error:', err));
+
     // Close the customer form modal
     closeCheckoutModal();
 
     // Trigger Razorpay payment with 20% discount & customer details prefilled
     if (window.payWithRazorpay) {
         window.payWithRazorpay(
-            currentCheckoutProduct.name,
-            currentCheckoutProduct.mrp,
-            currentCheckoutProduct.productId,
+            currentCheckoutProduct ? currentCheckoutProduct.name : 'Product',
+            currentCheckoutProduct ? currentCheckoutProduct.mrp : 0,
+            currentCheckoutProduct ? currentCheckoutProduct.productId : '',
             customerDetails
         );
     } else {
