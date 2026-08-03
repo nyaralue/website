@@ -168,10 +168,11 @@ function handleCheckoutSubmit(event) {
         locationLink: location
     };
 
-    // 1. Send instant notification directly to Google Sheet Webhook
+    // 1. Send instant notification directly to Google Sheet Webhook (CORS-safe for browser)
     fetch('https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
             productName: currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
             name: name,
