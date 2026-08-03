@@ -169,7 +169,7 @@ function handleCheckoutSubmit(event) {
     };
 
     // 1. Send instant notification directly to Google Sheet Webhook (CORS-safe for browser)
-    fetch('https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec', {
+    fetch('https://script.google.com/macros/s/AKfycbztxp93OAPqqv1UADuliCrmpjM1aYqXDntwiviPbFpqxXoYwvcaTqI04aVkb66yiT05BA/exec', {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
