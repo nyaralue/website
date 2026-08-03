@@ -123,7 +123,7 @@ function displayProducts() {
                         <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
                     </a>
                     ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
-                    ${product.price ? `<div class="product-grid-price">₹${parseFloat(product.price).toLocaleString()}</div>` : ''}
+                    ${product.price ? `<div class="product-grid-price"><s style="opacity: 0.6; font-size: 0.85em; font-weight: normal; margin-right: 6px;">₹${Math.round(parseFloat(product.price) * 1.30).toLocaleString()}</s><strong style="color: #2C3E2E;">₹${Math.round(parseFloat(product.price) * 1.30 * 0.80).toLocaleString()}</strong> <span style="font-size: 0.7rem; background: #27ae60; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px; vertical-align: middle;">FREE Delivery</span></div>` : ''}
                     
                     <div class="product-grid-actions">
                         <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${product.id || product._id}">
@@ -218,9 +218,10 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
 
     let hasLinks = false;
     const priceNum = parseFloat(price) || 0;
-    const discountedPrice = priceNum > 0 ? Math.round(priceNum * 0.85) : null;
+    const mrpPrice = Math.round(priceNum * 1.30); // 30% increased MRP
+    const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : null; // 20% OFF
 
-    // 1. Featured Option: Buy from Nyara Luxe (15% OFF from MRP)
+    // 1. Featured Option: Buy from Nyara Luxe (20% OFF + FREE Delivery)
     hasLinks = true;
     const nyaraBtn = document.createElement('button');
     nyaraBtn.className = 'ecommerce-platform-btn nyara-luxe-direct-btn';
@@ -229,19 +230,20 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     nyaraBtn.innerHTML = `
         <span style="display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-crown" style="color: #D4AF37; font-size: 1.1rem;"></i>
-            <span>Buy from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; font-weight: 700;">15% OFF</small></span>
+            <span>Buy from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; font-weight: 700;">20% OFF</small> <small style="background: #27ae60; color: #FFF; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 2px;">FREE Delivery</small></span>
         </span>
         <span style="font-size: 0.95rem;">
-            ${priceNum > 0 ? `<s style="opacity: 0.65; margin-right: 6px; font-size: 0.85em;">₹${priceNum.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.05em;">₹${discountedPrice.toLocaleString()}</strong>` : '<span style="color: #D4AF37;">15% OFF</span>'}
+            ${mrpPrice > 0 ? `<s style="opacity: 0.65; margin-right: 6px; font-size: 0.85em;">₹${mrpPrice.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.05em;">₹${discountedPrice.toLocaleString()}</strong>` : '<span style="color: #D4AF37;">20% OFF</span>'}
         </span>
     `;
 
     nyaraBtn.addEventListener('click', () => {
         if (window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', productName);
-        if (window.payWithRazorpay) {
-            window.payWithRazorpay(productName, priceNum);
+        modal.classList.remove('show');
+        if (window.openCheckoutModal) {
+            window.openCheckoutModal(productName, priceNum);
         } else {
-            alert('Payment gateway is loading. Please try again.');
+            alert('Checkout module loading... Please try again.');
         }
     });
     platformsContainer.appendChild(nyaraBtn);
