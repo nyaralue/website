@@ -42,17 +42,21 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {})
         handler: function (response) {
             const paymentId = response.razorpay_payment_id;
             
-            // Save order & customer details to backend
+            // Save order & customer details to backend (Sends exactly 1 single clean row to Google Sheet)
             const orderPayload = {
                 productName: productName,
                 productSku: productId || 'unknown',
                 name: customerDetails.name || 'Customer',
+                phone: customerDetails.phone || '',
+                address: customerDetails.address || '',
+                pincode: customerDetails.pincode || '',
                 email: customerDetails.email || '',
-                query: `ORDER SUCCESSFUL! Payment ID: ${paymentId}. Address: ${customerDetails.address || ''}, Location: ${customerDetails.locationLink || 'N/A'}, Amount Paid: ₹${discountedPrice}`,
+                locationLink: customerDetails.locationLink || '',
+                query: `ORDER SUCCESSFUL! Payment ID: ${paymentId} (Amount Paid: ₹${discountedPrice})`,
                 timestamp: new Date().toISOString()
             };
 
-            fetch('/api/help-request', {
+            fetch('/api/checkout-submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
