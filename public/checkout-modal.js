@@ -168,63 +168,6 @@ function handleCheckoutSubmit(event) {
         locationLink: location
     };
 
-    // 1. Send instant notification directly to Google Sheet Webhook (CORS-safe for browser)
-    fetch('https://script.google.com/macros/s/AKfycbztxp93OAPqqv1UADuliCrmpjM1aYqXDntwiviPbFpqxXoYwvcaTqI04aVkb66yiT05BA/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-            productName: currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
-            name: name,
-            phone: phone,
-            address: address,
-            pincode: pincode,
-            email: email || '',
-            locationLink: location || '',
-            query: `Order Form Submitted. Price: ₹${currentCheckoutProduct ? currentCheckoutProduct.price : ''}`
-        })
-    }).catch(err => console.error('Google Sheet webhook error:', err));
-
-    // 2. Send instant email notification to info@nyaraluxe.in via FormSubmit
-    fetch('https://formsubmit.co/ajax/info@nyaraluxe.in', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            _subject: `🛒 New Nyara Luxe Order: ${currentCheckoutProduct ? currentCheckoutProduct.name : 'Product'}`,
-            _template: 'table',
-            "Product Name": currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
-            "Offer Price": `₹${currentCheckoutProduct ? currentCheckoutProduct.price : 'N/A'} (20% OFF + Free Delivery)`,
-            "Customer Name": name,
-            "Mobile Phone": phone,
-            "Delivery Address": address,
-            "Pincode": pincode,
-            "Email Address": email || "Not provided",
-            "Google Maps Location": location || "Not provided",
-            "Date & Time": new Date().toLocaleString()
-        })
-    }).catch(err => console.error('FormSubmit email error:', err));
-
-    // 3. Immediately post order details to backend for MongoDB & Backup
-    fetch('/api/checkout-submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            productName: currentCheckoutProduct ? currentCheckoutProduct.name : 'Nyara Luxe Product',
-            productSku: currentCheckoutProduct ? currentCheckoutProduct.productId : 'N/A',
-            name: name,
-            phone: phone,
-            address: address,
-            pincode: pincode,
-            email: email,
-            locationLink: location,
-            query: `NEW ORDER FORM SUBMITTED! Customer: ${name}, Phone: ${phone}, Address: ${address}, Pincode: ${pincode}, Location: ${location || 'N/A'}, Item: ${currentCheckoutProduct ? currentCheckoutProduct.name : ''}, Price: ₹${currentCheckoutProduct ? currentCheckoutProduct.price : ''}`,
-            timestamp: new Date().toISOString()
-        })
-    }).catch(err => console.error('Checkout notification error:', err));
-
     // Close the customer form modal
     closeCheckoutModal();
 
