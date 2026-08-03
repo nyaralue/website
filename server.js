@@ -13,6 +13,7 @@ const { google } = require('googleapis');
 const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const nodemailer = require('nodemailer');
 
 // Import Models
 const Product = require('./models/Product');
@@ -649,15 +650,103 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Function to send email notification for orders and inquiries to info@nyaraluxe.in
+async function sendNotificationEmail(orderData) {
+  try {
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+    if (!smtpUser || !smtpPass) {
+      console.log('[Email Notification Log] Customer form submitted for info@nyaraluxe.in:', JSON.stringify(orderData, null, 2));
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass }
+    });
+
+    const mailOptions = {
+      from: `"Nyara Luxe Orders" <${smtpUser}>`,
+      to: 'info@nyaraluxe.in',
+      subject: `🛒 New Nyara Luxe Order / Form: ${orderData.productName || 'Customer Submission'}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #2C3E2E; border-radius: 10px; background: #F8F9F8;">
+          <h2 style="color: #2C3E2E; border-bottom: 2px solid #D4AF37; padding-bottom: 8px;">🛍️ New Order / Submission Received</h2>
+          
+          <p style="font-size: 1.05rem;"><strong>Product Name:</strong> ${orderData.productName || 'N/A'}</p>
+          
+          <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD; margin: 15px 0;">
+            <h3 style="color: #2C3E2E; margin-top: 0;">👤 Customer Information:</h3>
+            <p><strong>Full Name:</strong> ${orderData.name || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> <a href="tel:${orderData.phone}">${orderData.phone || 'N/A'}</a></p>
+            <p><strong>Email Address:</strong> ${orderData.email || 'Not provided'}</p>
+            <p><strong>Delivery Address:</strong> ${orderData.address || 'N/A'}</p>
+            <p><strong>Pincode:</strong> ${orderData.pincode || 'N/A'}</p>
+            <p><strong>Location Link:</strong> ${orderData.locationLink ? `<a href="${orderData.locationLink}" target="_blank">${orderData.locationLink}</a>` : 'Not provided'}</p>
+          </div>
+
+          <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD;">
+            <h3 style="color: #2C3E2E; margin-top: 0;">💳 Payment & Order Details:</h3>
+            <p><strong>Status / Details:</strong> ${orderData.query || 'Order Form Submitted'}</p>
+            <p><strong>Timestamp:</strong> ${orderData.timestamp || new Date().toLocaleString()}</p>
+          </div>
+
+          <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('Successfully sent order email notification to info@nyaraluxe.in');
+  } catch (err) {
+    console.error('Failed to send notification email:', err.message);
+  }
+}
+
+// Dedicated Checkout Form Submission Endpoint
+app.post('/api/checkout-submit', async (req, res) => {
+  try {
+    const { productName, productSku, name, phone, address, pincode, email, locationLink, query, timestamp } = req.body;
+
+    const requestData = {
+      productName: productName || 'Nyara Luxe Product',
+      productSku: productSku || 'N/A',
+      name: name || 'Customer',
+      phone: phone || '',
+      email: email || '',
+      address: address || '',
+      pincode: pincode || '',
+      locationLink: locationLink || '',
+      query: query || `Name: ${name}, Phone: ${phone}, Address: ${address}, Pincode: ${pincode}, Location: ${locationLink || 'N/A'}`,
+      timestamp: timestamp || new Date().toISOString()
+    };
+
+    // 1. Send Email Notification to info@nyaraluxe.in
+    await sendNotificationEmail(requestData);
+
+    // 2. Append to Google Sheet & Save to MongoDB
+    const result = await appendToGoogleSheet(requestData);
+    res.json(result);
+  } catch (error) {
+    console.error('Error in checkout-submit:', error);
+    res.status(500).json({ success: false, message: 'Server error processing checkout.' });
+  }
+});
+
 // Help form submission
 app.post('/api/help-request', async (req, res) => {
   try {
     const { productId, productName, productSku, name, email, query, timestamp } = req.body;
 
-    if (!name || !email || !query) {
+    if (!name || (!email && !req.body.phone) || !query) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, and query are required fields.'
+        message: 'Required fields missing.'
       });
     }
 
@@ -666,9 +755,16 @@ app.post('/api/help-request', async (req, res) => {
       productSku,
       name,
       email,
+      phone: req.body.phone || '',
+      address: req.body.address || '',
+      pincode: req.body.pincode || '',
+      locationLink: req.body.locationLink || '',
       query,
       timestamp: timestamp || new Date().toISOString()
     };
+
+    // Send email notification to info@nyaraluxe.in
+    await sendNotificationEmail(requestData);
 
     const result = await appendToGoogleSheet(requestData);
     res.json(result);
