@@ -160,7 +160,7 @@ async function getGoogleSheetsClient() {
   }
 }
 
-// Function to append data to Google Sheet
+// Function to append data to Google Sheet (ONLY Google Sheet, no MongoDB)
 async function appendToGoogleSheet(data) {
   try {
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbx9J7Rl-rWjkz6t77IZgMsw2O3TWKhJeX0gaZcOr2BPsZ81j_f1JBszRzde4mkeCrkdfw/exec';
@@ -179,40 +179,34 @@ async function appendToGoogleSheet(data) {
 
     const sheets = await getGoogleSheetsClient();
 
-    if (!sheets) {
-      console.log('Google Sheets authentication key not found, saving to MongoDB');
-      return await saveToMongoDB(data);
+    if (sheets) {
+      const values = [
+        [
+          new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          data.productName || '',
+          data.name || '',
+          data.phone || '',
+          data.address || '',
+          data.pincode || '',
+          data.email || '',
+          data.locationLink || '',
+          data.query || ''
+        ]
+      ];
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: GOOGLE_SHEET_ID,
+        range: GOOGLE_SHEET_RANGE,
+        valueInputOption: 'RAW',
+        resource: { values: values }
+      });
     }
 
-    const values = [
-      [
-        new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        data.productName || '',
-        data.name || '',
-        data.phone || '',
-        data.address || '',
-        data.pincode || '',
-        data.email || '',
-        data.locationLink || '',
-        data.query || ''
-      ]
-    ];
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_SHEET_ID,
-      range: GOOGLE_SHEET_RANGE,
-      valueInputOption: 'RAW',
-      resource: { values: values }
-    });
-
-    // Also save to MongoDB for redundancy
-    await saveToMongoDB(data);
-
-    return { success: true, message: 'Your query has been submitted successfully.' };
+    return { success: true, message: 'Your order has been submitted to Google Sheet successfully.' };
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
-    return await saveToMongoDB(data);
+    return { success: false, message: 'Error processing Google Sheet submission.' };
   }
 }
 
