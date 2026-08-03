@@ -653,20 +653,20 @@ app.get('/', (req, res) => {
 // Function to send email notification for orders and inquiries to info@nyaraluxe.in
 async function sendNotificationEmail(orderData) {
   try {
-    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '465');
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'info@nyaraluxe.in';
     const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
     if (!smtpUser || !smtpPass) {
-      console.log('[Email Notification Log] Customer form submitted for info@nyaraluxe.in:', JSON.stringify(orderData, null, 2));
+      console.log('[Hostinger SMTP Notification Log] Form submitted for info@nyaraluxe.in:', JSON.stringify(orderData, null, 2));
       return;
     }
 
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpPort === 465,
+      secure: true, // SSL for port 465 (Hostinger standard)
       auth: { user: smtpUser, pass: smtpPass }
     });
 
