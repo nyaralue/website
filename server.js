@@ -839,19 +839,8 @@ app.post('/api/chat-online', async (req, res) => {
     }
     await session.save();
 
-    const onlineData = {
-      type: 'chat_online',
-      productName: '⚡ Live Customer Opened Chat',
-      name: session.customerName || 'Active Website Visitor',
-      query: `Customer is active on page: ${pageUrl || 'Home Page'} (Session ID: ${sessionId})`,
-      timestamp: timeStr
-    };
-
-    // Send email notification via SMTP + Webhook
-    sendNotificationEmail(onlineData).catch(e => console.log('Mail err:', e));
-    appendToGoogleSheet(onlineData).catch(e => console.log('Sheet err:', e));
-
-    res.json({ success: true, sessionId, message: 'Online alert processed.' });
+    // Online status updated in MongoDB (No email or sheet ping sent for online status)
+    res.json({ success: true, sessionId, message: 'Online status updated.' });
   } catch (error) {
     console.error('Error in chat-online alert:', error);
     res.status(500).json({ success: false, message: 'Alert processing error' });
