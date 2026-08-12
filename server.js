@@ -787,25 +787,59 @@ app.post('/api/help-request', async (req, res) => {
   }
 });
 
+// Live Chat Sessions In-Memory Store
+const liveSessions = {};
+
+// Clean up stale sessions (older than 24 hours)
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(liveSessions).forEach(sid => {
+    if (now - (liveSessions[sid].lastActiveTime || 0) > 86400000) {
+      delete liveSessions[sid];
+    }
+  });
+}, 3600000);
+
 // Chatbot Live User Online Ping Endpoint
 app.post('/api/chat-online', async (req, res) => {
   try {
-    const { pageUrl, timestamp, device } = req.body;
+    let { sessionId, pageUrl, timestamp, device } = req.body;
+    
+    if (!sessionId) {
+      sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    const nowTime = Date.now();
+    const timeStr = timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+    if (!liveSessions[sessionId]) {
+      liveSessions[sessionId] = {
+        sessionId,
+        customerName: 'Active Customer',
+        customerContact: 'Not provided',
+        pageUrl: pageUrl || 'Home Page',
+        createdAt: timeStr,
+        lastActiveTime: nowTime,
+        messages: []
+      };
+    } else {
+      liveSessions[sessionId].lastActiveTime = nowTime;
+      if (pageUrl) liveSessions[sessionId].pageUrl = pageUrl;
+    }
+
     const onlineData = {
       type: 'chat_online',
       productName: '⚡ Live Customer Opened Chat',
-      name: 'Active Website Visitor',
-      query: `Customer is active on page: ${pageUrl || 'Home Page'}`,
-      timestamp: timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+      name: liveSessions[sessionId].customerName || 'Active Website Visitor',
+      query: `Customer is active on page: ${pageUrl || 'Home Page'} (Session ID: ${sessionId})`,
+      timestamp: timeStr
     };
 
-    // Notify owner by email
-    await sendNotificationEmail(onlineData);
+    // Send email notification via SMTP + Webhook
+    sendNotificationEmail(onlineData).catch(e => console.log('Mail err:', e));
+    appendToGoogleSheet(onlineData).catch(e => console.log('Sheet err:', e));
 
-    // Forward to Google Apps Script Webhook
-    await appendToGoogleSheet(onlineData);
-
-    res.json({ success: true, message: 'Online alert processed.' });
+    res.json({ success: true, sessionId, message: 'Online alert processed.' });
   } catch (error) {
     console.error('Error in chat-online alert:', error);
     res.status(500).json({ success: false, message: 'Alert processing error' });
@@ -815,37 +849,164 @@ app.post('/api/chat-online', async (req, res) => {
 // Chatbot Query Logger Endpoint
 app.post('/api/chat-query', async (req, res) => {
   try {
-    const { category, name, contact, query, pageUrl, timestamp } = req.body;
+    const { sessionId, category, name, contact, query, pageUrl, timestamp } = req.body;
+
+    const timeStr = timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const nowTime = Date.now();
+
+    const sid = sessionId || ('sess_' + Date.now());
+    if (!liveSessions[sid]) {
+      liveSessions[sid] = {
+        sessionId: sid,
+        customerName: name || 'Website Visitor',
+        customerContact: contact || 'Not provided',
+        pageUrl: pageUrl || '',
+        createdAt: timeStr,
+        lastActiveTime: nowTime,
+        messages: []
+      };
+    }
+
+    if (name) liveSessions[sid].customerName = name;
+    if (contact) liveSessions[sid].customerContact = contact;
+    liveSessions[sid].lastActiveTime = nowTime;
+
+    if (query) {
+      liveSessions[sid].messages.push({
+        id: Date.now(),
+        sender: 'customer',
+        category: category || 'General',
+        text: query,
+        timestamp: timeStr,
+        isRead: false
+      });
+    }
 
     const chatQueryData = {
       type: 'chat_query',
       sheetName: 'Customer Queries',
       category: category || 'General Query',
-      name: name || 'Website Visitor',
-      phone: contact || 'Not provided',
-      email: contact || 'Not provided',
+      name: name || liveSessions[sid].customerName,
+      phone: contact || liveSessions[sid].customerContact,
+      email: contact || liveSessions[sid].customerContact,
       query: `[Category: ${category || 'Query'}] ${query || ''}`,
       rawQuery: query || '',
       pageUrl: pageUrl || '',
-      timestamp: timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+      timestamp: timeStr
     };
 
     // 1. Send Email Notification to info@nyaraluxe.in
-    await sendNotificationEmail({
+    sendNotificationEmail({
       productName: `Chat Query (${category || 'General'})`,
-      name: name || 'Website Customer',
-      phone: contact || 'Not provided',
-      email: contact || 'Not provided',
+      name: name || liveSessions[sid].customerName,
+      phone: contact || liveSessions[sid].customerContact,
+      email: contact || liveSessions[sid].customerContact,
       query: `Category: ${category || 'Query'}\nMessage: ${query || ''}`,
-      timestamp: chatQueryData.timestamp
-    });
+      timestamp: timeStr
+    }).catch(e => console.log('Mail error:', e));
 
-    // 2. Forward to Webhook which logs to "Customer Queries" sheet tab
+    // 2. Forward to Webhook
     const result = await appendToGoogleSheet(chatQueryData);
-    res.json(result);
+    res.json({ success: true, sessionId: sid });
   } catch (error) {
     console.error('Error in chat-query logger:', error);
     res.status(500).json({ success: false, message: 'Chat query logging error' });
+  }
+});
+
+// Customer Poll for Messages Endpoint
+app.get('/api/chat-messages', (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    if (!sessionId || !liveSessions[sessionId]) {
+      return res.json({ success: true, messages: [] });
+    }
+
+    liveSessions[sessionId].lastActiveTime = Date.now();
+    res.json({ success: true, messages: liveSessions[sessionId].messages || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch messages' });
+  }
+});
+
+// Admin List Live Chat Sessions Endpoint
+app.get('/api/admin/chat-sessions', verifyToken, (req, res) => {
+  try {
+    const now = Date.now();
+    const sessionsList = Object.values(liveSessions).map(s => {
+      const isOnline = (now - (s.lastActiveTime || 0)) < 120000; // active in last 2 minutes
+      const unreadCount = (s.messages || []).filter(m => m.sender === 'customer' && !m.isRead).length;
+      const lastMsg = (s.messages && s.messages.length > 0) ? s.messages[s.messages.length - 1] : null;
+
+      return {
+        sessionId: s.sessionId,
+        customerName: s.customerName || 'Customer',
+        customerContact: s.customerContact || 'Not provided',
+        pageUrl: s.pageUrl || 'Home',
+        isOnline: isOnline,
+        unreadCount: unreadCount,
+        lastMessage: lastMsg ? lastMsg.text : 'No messages yet',
+        lastMessageTime: lastMsg ? lastMsg.timestamp : s.createdAt,
+        totalMessages: (s.messages || []).length
+      };
+    });
+
+    sessionsList.sort((a, b) => (liveSessions[b.sessionId]?.lastActiveTime || 0) - (liveSessions[a.sessionId]?.lastActiveTime || 0));
+
+    res.json({ success: true, sessions: sessionsList });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch admin sessions' });
+  }
+});
+
+// Admin Fetch Single Session Messages Endpoint
+app.get('/api/admin/chat-messages/:sessionId', verifyToken, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!liveSessions[sessionId]) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    (liveSessions[sessionId].messages || []).forEach(m => {
+      if (m.sender === 'customer') m.isRead = true;
+    });
+
+    res.json({
+      success: true,
+      session: liveSessions[sessionId],
+      messages: liveSessions[sessionId].messages || []
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch thread' });
+  }
+});
+
+// Admin Send Reply to Customer Endpoint
+app.post('/api/admin/chat-reply', verifyToken, (req, res) => {
+  try {
+    const { sessionId, text } = req.body;
+    if (!sessionId || !text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Session ID and text required' });
+    }
+
+    if (!liveSessions[sessionId]) {
+      return res.status(404).json({ success: false, message: 'Customer session not found' });
+    }
+
+    const replyMsg = {
+      id: Date.now(),
+      sender: 'admin',
+      text: text.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    liveSessions[sessionId].messages.push(replyMsg);
+    liveSessions[sessionId].lastActiveTime = Date.now();
+
+    res.json({ success: true, message: replyMsg });
+  } catch (error) {
+    console.error('Error in admin chat-reply:', error);
+    res.status(500).json({ success: false, message: 'Failed to send reply' });
   }
 });
 
