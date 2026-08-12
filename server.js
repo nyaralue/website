@@ -815,19 +815,32 @@ app.post('/api/chat-online', async (req, res) => {
 // Chatbot Query Logger Endpoint
 app.post('/api/chat-query', async (req, res) => {
   try {
-    const { sheetName, name, query, botAnswer, timestamp, pageUrl } = req.body;
+    const { category, name, contact, query, pageUrl, timestamp } = req.body;
 
     const chatQueryData = {
       type: 'chat_query',
-      sheetName: sheetName || 'Customer Queries',
+      sheetName: 'Customer Queries',
+      category: category || 'General Query',
       name: name || 'Website Visitor',
-      query: query || '',
-      botAnswer: botAnswer || '',
+      phone: contact || 'Not provided',
+      email: contact || 'Not provided',
+      query: `[Category: ${category || 'Query'}] ${query || ''}`,
+      rawQuery: query || '',
       pageUrl: pageUrl || '',
       timestamp: timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
     };
 
-    // Forward to Webhook which logs to "Customer Queries" sheet tab
+    // 1. Send Email Notification to info@nyaraluxe.in
+    await sendNotificationEmail({
+      productName: `Chat Query (${category || 'General'})`,
+      name: name || 'Website Customer',
+      phone: contact || 'Not provided',
+      email: contact || 'Not provided',
+      query: `Category: ${category || 'Query'}\nMessage: ${query || ''}`,
+      timestamp: chatQueryData.timestamp
+    });
+
+    // 2. Forward to Webhook which logs to "Customer Queries" sheet tab
     const result = await appendToGoogleSheet(chatQueryData);
     res.json(result);
   } catch (error) {
