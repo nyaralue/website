@@ -181,11 +181,11 @@ async function appendToGoogleSheet(data) {
     const sheets = await getGoogleSheetsClient();
 
     if (sheets && data.type !== 'chat_online') {
-      let targetRange = GOOGLE_SHEET_RANGE; // 'Sheet1' for Product Orders
+      let targetRange = null;
       let values = [];
 
       if (data.type === 'chat_query' || data.sheetName === 'Customer Queries') {
-        targetRange = 'Customer Queries';
+        targetRange = 'Customer Queries'; // CUSTOMER QUERIES TAB ONLY
         values = [
           [
             new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -196,8 +196,8 @@ async function appendToGoogleSheet(data) {
             data.pageUrl || ''
           ]
         ];
-      } else {
-        // Product Orders ONLY -> Sheet1
+      } else if (data.type === 'order' || (!data.type && data.productName)) {
+        targetRange = 'Sheet1'; // PRODUCT ORDERS ONLY -> SHEET1
         values = [
           [
             new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -213,15 +213,17 @@ async function appendToGoogleSheet(data) {
         ];
       }
 
-      try {
-        await sheets.spreadsheets.values.append({
-          spreadsheetId: GOOGLE_SHEET_ID,
-          range: targetRange,
-          valueInputOption: 'RAW',
-          resource: { values: values }
-        });
-      } catch (sheetsErr) {
-        console.log('Google Sheets API direct append fallback error:', sheetsErr.message);
+      if (targetRange && values.length > 0) {
+        try {
+          await sheets.spreadsheets.values.append({
+            spreadsheetId: GOOGLE_SHEET_ID,
+            range: targetRange,
+            valueInputOption: 'RAW',
+            resource: { values: values }
+          });
+        } catch (sheetsErr) {
+          console.log('Google Sheets API append fallback info:', sheetsErr.message);
+        }
       }
     }
 
