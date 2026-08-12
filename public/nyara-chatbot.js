@@ -1,9 +1,18 @@
-// Nyara Luxe AI Concierge & Live Customer Support Chatbot
+// Nyara Luxe Interactive AI Concierge & Automated Query Flow
 
 (function () {
     let hasSentOnlineAlert = false;
 
-    // Inject CSS dynamically
+    // Chatbot Flow State
+    let flowState = {
+        step: 0, // 0: Main Menu, 1: Query Details, 2: Name, 3: Contact
+        category: '',
+        queryText: '',
+        userName: '',
+        userContact: ''
+    };
+
+    // Inject CSS
     function injectCSS() {
         if (!document.getElementById('nyara-chatbot-css')) {
             const link = document.createElement('link');
@@ -20,8 +29,8 @@
 
         const widgetHtml = `
         <div id="nyara-chat-widget" class="nyara-chat-widget">
-            <!-- Launcher Floating Button -->
-            <button id="nyara-chat-launcher" class="nyara-chat-launcher" title="Chat with Nyara Luxe Concierge">
+            <!-- Floating Launcher Button -->
+            <button id="nyara-chat-launcher" class="nyara-chat-launcher" title="Chat with Nyara Luxe Support">
                 <i class="fas fa-comments"></i>
                 <span class="nyara-chat-badge">1</span>
             </button>
@@ -33,14 +42,14 @@
                     <div class="nyara-chat-header-info">
                         <img src="Nyara_Home_Visiting_Card-removebg-preview.png" alt="Nyara Luxe Logo" class="nyara-chat-avatar">
                         <div class="nyara-chat-title-container">
-                            <h4 class="nyara-chat-title">Nyara Luxe Assistant</h4>
+                            <h4 class="nyara-chat-title">Nyara Luxe Support</h4>
                             <span class="nyara-chat-status">
-                                <span class="nyara-status-dot"></span> Online | Instant Assist
+                                <span class="nyara-status-dot"></span> Online | Instant Help
                             </span>
                         </div>
                     </div>
                     <div class="nyara-chat-header-actions">
-                        <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20need%20help%20with%20an%20order" target="_blank" class="nyara-chat-header-btn" title="Chat 1-on-1 on WhatsApp">
+                        <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20want%20to%20chat%20live." target="_blank" class="nyara-chat-header-btn" title="Chat 1-on-1 on WhatsApp">
                             <i class="fab fa-whatsapp" style="color: #25D366; font-size: 16px;"></i>
                         </a>
                         <button id="nyara-chat-close-btn" class="nyara-chat-header-btn" title="Close Chat">&times;</button>
@@ -49,32 +58,27 @@
 
                 <!-- Messages Body -->
                 <div id="nyara-chat-body" class="nyara-chat-body">
-                    <!-- Bot Welcome Message -->
+                    <!-- Welcome Msg -->
                     <div class="nyara-msg nyara-msg-bot">
-                        👋 Namaste! Welcome to <strong>Nyara Luxe</strong> — Soft Luxury for Modern Homes.<br><br>
-                        How can I help you today? Select a option below or ask me any question!
+                        👋 Namaste! Welcome to <strong>Nyara Luxe</strong>.<br><br>
+                        How can we assist you today? Please select an option below:
                         <div class="nyara-msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
 
-                    <!-- FAQ Action Buttons -->
-                    <div class="nyara-chat-faqs">
-                        <button class="nyara-faq-btn" onclick="NyaraChat.handleFAQ('products')">💡 Products & Collection</button>
-                        <button class="nyara-faq-btn" onclick="NyaraChat.handleFAQ('discounts')">💰 20% OFF & Offers</button>
-                        <button class="nyara-faq-btn" onclick="NyaraChat.handleFAQ('shipping')">🚚 Delivery Time</button>
-                        <button class="nyara-faq-btn" onclick="NyaraChat.handleFAQ('contact')">📧 Contact Support</button>
-                        <button class="nyara-faq-btn" onclick="NyaraChat.handleFAQ('live')">👤 Talk 1-on-1 Live</button>
+                    <!-- Options Buttons -->
+                    <div id="nyara-menu-options" class="nyara-chat-faqs">
+                        <button class="nyara-faq-btn" onclick="NyaraChat.selectCategory('Do you have a Query?')">❓ Do you have a Query?</button>
+                        <button class="nyara-faq-btn" onclick="NyaraChat.selectCategory('Submit Feedback Form')">📝 Submit Feedback Form</button>
+                        <button class="nyara-faq-btn" onclick="NyaraChat.selectCategory('Order in Bulk')">📦 Order in Bulk</button>
+                        <button class="nyara-faq-btn" onclick="NyaraChat.selectCategory('Complain About Previous Order')">⚠️ Complain Previous Order</button>
+                        <button class="nyara-faq-btn" onclick="NyaraChat.selectCategory('Other')">🌐 Other Query</button>
+                        <button class="nyara-faq-btn nyara-btn-wa" onclick="NyaraChat.openWhatsAppDirect()">💬 Chat Live on WhatsApp</button>
                     </div>
-
-                    <!-- Direct WhatsApp Banner -->
-                    <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20have%20a%20query." target="_blank" class="nyara-whatsapp-banner">
-                        <span><i class="fab fa-whatsapp"></i> Want live 1-on-1 help?</span>
-                        <strong>Chat on WhatsApp &rarr;</strong>
-                    </a>
                 </div>
 
                 <!-- Footer Input -->
                 <form id="nyara-chat-form" class="nyara-chat-footer" onsubmit="NyaraChat.handleSend(event)">
-                    <input type="text" id="nyara-chat-input" class="nyara-chat-input" placeholder="Type your message..." autocomplete="off" required>
+                    <input type="text" id="nyara-chat-input" class="nyara-chat-input" placeholder="Type your response here..." autocomplete="off" required>
                     <button type="submit" class="nyara-chat-send-btn" title="Send message">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -85,7 +89,6 @@
 
         document.body.insertAdjacentHTML('beforeend', widgetHtml);
 
-        // Bind launcher & close button
         const launcher = document.getElementById('nyara-chat-launcher');
         const closeBtn = document.getElementById('nyara-chat-close-btn');
 
@@ -109,22 +112,18 @@
         }
     }
 
-    // Alert server & owner that user opened live chat
     function sendOnlineAlert() {
-        const payload = {
-            pageUrl: window.location.href,
-            timestamp: new Date().toISOString(),
-            device: navigator.userAgent
-        };
-
         fetch('/api/chat-online', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(err => console.log('Online alert ping:', err));
+            body: JSON.stringify({
+                pageUrl: window.location.href,
+                timestamp: new Date().toISOString(),
+                device: navigator.userAgent
+            })
+        }).catch(err => console.log('Online alert:', err));
     }
 
-    // Append Message to UI
     function appendMessage(text, isUser = false) {
         const body = document.getElementById('nyara-chat-body');
         if (!body) return;
@@ -138,7 +137,6 @@
         body.scrollTop = body.scrollHeight;
     }
 
-    // Show Typing Indicator
     function showTyping() {
         const body = document.getElementById('nyara-chat-body');
         const typingDiv = document.createElement('div');
@@ -154,109 +152,87 @@
         if (typing) typing.remove();
     }
 
-    // Send query to backend & Google Sheet "Customer Queries" tab
-    function logQueryToSheet(userText, botAnswer) {
+    function hideMenuOptions() {
+        const menu = document.getElementById('nyara-menu-options');
+        if (menu) menu.style.display = 'none';
+    }
+
+    function showSkipButton() {
+        const inputForm = document.getElementById('nyara-chat-form');
+        let skipBtn = document.getElementById('nyara-skip-btn');
+        if (!skipBtn && inputForm) {
+            skipBtn = document.createElement('button');
+            skipBtn.id = 'nyara-skip-btn';
+            skipBtn.type = 'button';
+            skipBtn.className = 'nyara-faq-btn';
+            skipBtn.style.margin = '4px 0 0 12px';
+            skipBtn.style.padding = '4px 10px';
+            skipBtn.style.fontSize = '0.75rem';
+            skipBtn.textContent = 'Skip this step ➔';
+            skipBtn.onclick = function() {
+                NyaraChat.handleInput('Not provided (Skipped)');
+            };
+            inputForm.parentNode.insertBefore(skipBtn, inputForm);
+        }
+    }
+
+    function removeSkipButton() {
+        const skipBtn = document.getElementById('nyara-skip-btn');
+        if (skipBtn) skipBtn.remove();
+    }
+
+    // Submit Complete Query to Backend (Google Sheet + Email to info@nyaraluxe.in)
+    function submitFinalQuery() {
         const payload = {
             sheetName: 'Customer Queries',
-            name: 'Website Visitor',
-            query: userText,
-            botAnswer: botAnswer,
-            timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            pageUrl: window.location.href
+            category: flowState.category,
+            name: flowState.userName || 'Website Customer',
+            contact: flowState.userContact || 'Not provided',
+            query: flowState.queryText,
+            pageUrl: window.location.href,
+            timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
         };
 
         fetch('/api/chat-query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        }).catch(err => console.error('Error logging query:', err));
+        }).catch(err => console.error('Submit query error:', err));
     }
 
-    // Smart Answer Engine
-    function generateBotReply(text) {
-        const q = text.toLowerCase();
-
-        if (q.includes('product') || q.includes('item') || q.includes('collection') || q.includes('lamp') || q.includes('light') || q.includes('rug') || q.includes('kya kya') || q.includes('saman')) {
-            return `✨ <strong>Nyara Luxe Collection:</strong><br>
-            - Wall Lamps & Sconces<br>
-            - Modern Chandeliers & Pendant Lights<br>
-            - Garden & Outdoor Accent Lighting<br>
-            - Luxury Rugs, Carpets & Cushion Covers<br><br>
-            Explore all items in our <a href="products-grid.html" style="color:#2C3E2E; font-weight:bold; text-decoration:underline;">Products Grid</a>!`;
-        }
-
-        if (q.includes('discount') || q.includes('offer') || q.includes('price') || q.includes('off') || q.includes('coupon') || q.includes('rate')) {
-            return `🎉 <strong>Special Nyara Luxe Offer:</strong><br>
-            Get <strong>20% OFF</strong> on all direct website purchases + <strong>FREE Delivery</strong> across India!<br>
-            Simply click <em>"Buy from Nyara Luxe"</em> on any product to unlock the discount immediately.`;
-        }
-
-        if (q.includes('delivery') || q.includes('shipping') || q.includes('time') || q.includes('track') || q.includes('kitne din') || q.includes('kab tak')) {
-            return `🚚 <strong>Shipping & Delivery Info:</strong><br>
-            - Free Shipping across India.<br>
-            - Standard delivery takes <strong>3 to 5 business days</strong>.<br>
-            - Order confirmation & invoice will be sent directly to your email address!`;
-        }
-
-        if (q.includes('contact') || q.includes('email') || q.includes('phone') || q.includes('call') || q.includes('number') || q.includes('address') || q.includes('mail') || q.includes('help') || q.includes('dikat') || q.includes('issue') || q.includes('problem')) {
-            return `📞 <strong>Nyara Luxe Customer Support:</strong><br>
-            - <strong>Email:</strong> <a href="mailto:info@nyaraluxe.in" style="color:#2C3E2E; font-weight:bold;">info@nyaraluxe.in</a><br>
-            - <strong>WhatsApp / Phone:</strong> <a href="https://wa.me/917690082033" target="_blank" style="color:#25D366; font-weight:bold;">+91 7690082033</a><br>
-            - <strong>Address:</strong> F-65, Lane 3, Rajouri Garden, New Delhi - 110027.<br><br>
-            If you face any issue, mail us at <code>info@nyaraluxe.in</code> or click below to chat live on WhatsApp!`;
-        }
-
-        if (q.includes('live') || q.includes('owner') || q.includes('human') || q.includes('person') || q.includes('baat') || q.includes('talk')) {
-            return `👤 <strong>Connect 1-on-1 with Live Owner:</strong><br>
-            We have alerted our team! You can also click here to chat directly on WhatsApp: <br><br>
-            👉 <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20am%20on%20your%20website%20and%20want%20to%20talk%20live." target="_blank" style="display:inline-block; background:#25D366; color:#fff; padding:8px 14px; border-radius:20px; text-decoration:none; font-weight:bold;"><i class="fab fa-whatsapp"></i> Chat Live on WhatsApp</a>`;
-        }
-
-        if (q.includes('return') || q.includes('refund') || q.includes('damage') || q.includes('broken')) {
-            return `🛡️ <strong>Return & Replacement Policy:</strong><br>
-            We offer replacement for any items damaged in transit! Please record an unboxing video and share it with us at <strong>info@nyaraluxe.in</strong> or WhatsApp at <strong>+91 7690082033</strong>.`;
-        }
-
-        return `Thank you for your question! 🌿<br><br>
-        I have logged your query and notified our team at <strong>info@nyaraluxe.in</strong>. If you need urgent assistance, click the WhatsApp button above to chat 1-on-1 with us directly!`;
-    }
-
-    // Expose global controller
     window.NyaraChat = {
-        handleFAQ: function (type) {
-            let label = '';
-            let replyText = '';
+        openWhatsAppDirect: function () {
+            appendMessage("💬 Chat Live on WhatsApp", true);
+            showTyping();
+            setTimeout(() => {
+                hideTyping();
+                const waUrl = "https://wa.me/917690082033?text=" + encodeURIComponent("Hi Nyara Luxe! I want to chat directly with you.");
+                appendMessage(`👉 Opened WhatsApp!<br><br><a href="${waUrl}" target="_blank" style="display:inline-block; background:#25D366; color:#FFF; padding:8px 14px; border-radius:20px; text-decoration:none; font-weight:bold;"><i class="fab fa-whatsapp"></i> Click to Open WhatsApp Chat</a>`, false);
+                window.open(waUrl, '_blank');
+            }, 500);
+        },
 
-            switch (type) {
-                case 'products':
-                    label = '💡 Products & Collection';
-                    replyText = generateBotReply('product');
-                    break;
-                case 'discounts':
-                    label = '💰 20% OFF & Offers';
-                    replyText = generateBotReply('discount');
-                    break;
-                case 'shipping':
-                    label = '🚚 Delivery Time';
-                    replyText = generateBotReply('delivery');
-                    break;
-                case 'contact':
-                    label = '📧 Contact Support';
-                    replyText = generateBotReply('contact');
-                    break;
-                case 'live':
-                    label = '👤 Talk 1-on-1 Live';
-                    replyText = generateBotReply('live');
-                    break;
-            }
+        selectCategory: function (catName) {
+            flowState.category = catName;
+            flowState.step = 1;
 
-            appendMessage(label, true);
+            hideMenuOptions();
+            appendMessage(catName, true);
             showTyping();
 
             setTimeout(() => {
                 hideTyping();
-                appendMessage(replyText, false);
-                logQueryToSheet(label, replyText);
+                if (catName === 'Other') {
+                    appendMessage("Please specify your query or message in detail:", false);
+                } else if (catName === 'Submit Feedback Form') {
+                    appendMessage("We value your feedback! Please type your thoughts or review:", false);
+                } else if (catName === 'Order in Bulk') {
+                    appendMessage("Great! Please describe your bulk order requirements (quantity, product names, location):", false);
+                } else if (catName === 'Complain About Previous Order') {
+                    appendMessage("We are sorry for any inconvenience! Please describe your issue along with your Order ID or Phone number:", false);
+                } else {
+                    appendMessage("Please type your question or query below:", false);
+                }
             }, 600);
         },
 
@@ -267,20 +243,53 @@
             if (!text) return;
 
             input.value = '';
-            appendMessage(text, true);
-            showTyping();
+            this.handleInput(text);
+        },
 
-            const botReply = generateBotReply(text);
+        handleInput: function (text) {
+            appendMessage(text, true);
+            removeSkipButton();
+            showTyping();
 
             setTimeout(() => {
                 hideTyping();
-                appendMessage(botReply, false);
-                logQueryToSheet(text, botReply);
-            }, 800);
+
+                if (flowState.step === 1) {
+                    // Query text collected -> Ask Name
+                    flowState.queryText = text;
+                    flowState.step = 2;
+                    appendMessage("Got it! Please enter your <strong>Full Name</strong>:", false);
+
+                } else if (flowState.step === 2) {
+                    // Name collected -> Ask Contact
+                    flowState.userName = text;
+                    flowState.step = 3;
+                    showSkipButton();
+                    appendMessage(`Thank you <strong>${flowState.userName}</strong>!<br><br>Please enter your <strong>Mobile Number</strong> or <strong>Email Address</strong> (Optional, so we can get back to you):`, false);
+
+                } else if (flowState.step === 3) {
+                    // Contact collected -> Complete & Submit
+                    flowState.userContact = text;
+                    flowState.step = 4;
+
+                    submitFinalQuery();
+
+                    const waLink = `https://wa.me/917690082033?text=` + encodeURIComponent(`Hi Nyara Luxe! My name is ${flowState.userName}. I submitted a query regarding "${flowState.category}": ${flowState.queryText}`);
+
+                    appendMessage(`✅ <strong>Thank you ${flowState.userName}!</strong><br><br>Your query has been logged and emailed directly to <strong>info@nyaraluxe.in</strong>.<br><br>
+                    💡 <em>Want to talk to us 1-on-1 right now?</em><br><br>
+                    👉 <a href="${waLink}" target="_blank" style="display:inline-block; background:#25D366; color:#FFF; padding:10px 16px; border-radius:20px; text-decoration:none; font-weight:bold;"><i class="fab fa-whatsapp"></i> Chat Live on WhatsApp Now</a>`, false);
+
+                } else {
+                    // Reset to Step 1 for new messages
+                    flowState.queryText = text;
+                    flowState.step = 2;
+                    appendMessage("Thank you! Please enter your <strong>Full Name</strong> to update your request:", false);
+                }
+            }, 700);
         }
     };
 
-    // Auto initialize on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
         injectCSS();
         injectWidget();
