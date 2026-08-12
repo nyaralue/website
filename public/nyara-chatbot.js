@@ -1,7 +1,16 @@
-// Nyara Luxe Interactive AI Concierge & Automated Query Flow
+// Nyara Luxe Real-Time Live Chatbot & Automated Query Flow
 
 (function () {
     let hasSentOnlineAlert = false;
+    let sessionId = localStorage.getItem('nyara_chat_session_id');
+
+    if (!sessionId) {
+        sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        localStorage.setItem('nyara_chat_session_id', sessionId);
+    }
+
+    const renderedMsgIds = new Set();
+    let pollInterval = null;
 
     // Chatbot Flow State
     let flowState = {
@@ -106,9 +115,12 @@
 
         if (badge) badge.style.display = 'none';
 
-        if (isOpening && !hasSentOnlineAlert) {
-            hasSentOnlineAlert = true;
-            sendOnlineAlert();
+        if (isOpening) {
+            startPolling();
+            if (!hasSentOnlineAlert) {
+                hasSentOnlineAlert = true;
+                sendOnlineAlert();
+            }
         }
     }
 
@@ -117,6 +129,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                sessionId: sessionId,
                 pageUrl: window.location.href,
                 timestamp: new Date().toISOString(),
                 device: navigator.userAgent
@@ -124,14 +137,27 @@
         }).catch(err => console.log('Online alert:', err));
     }
 
-    function appendMessage(text, isUser = false) {
+    function appendMessage(text, isUser = false, msgId = null, isLiveAdmin = false) {
         const body = document.getElementById('nyara-chat-body');
         if (!body) return;
 
+        if (msgId && renderedMsgIds.has(msgId)) return;
+        if (msgId) renderedMsgIds.add(msgId);
+
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const msgDiv = document.createElement('div');
-        msgDiv.className = `nyara-msg ${isUser ? 'nyara-msg-user' : 'nyara-msg-bot'}`;
-        msgDiv.innerHTML = `${text}<div class="nyara-msg-time">${timeStr}</div>`;
+
+        if (isLiveAdmin) {
+            msgDiv.className = 'nyara-msg nyara-msg-admin';
+            msgDiv.style.background = 'linear-gradient(135deg, #FFF9E6 0%, #FFF3CC 100%)';
+            msgDiv.style.border = '1px solid #D4AF37';
+            msgDiv.style.color = '#2C3E2E';
+            msgDiv.style.alignSelf = 'flex-start';
+            msgDiv.innerHTML = `<div style="font-size:0.75rem; font-weight:bold; color:#B8860B; margin-bottom:4px;"><i class="fas fa-user-shield"></i> Live Owner (Admin)</div>${text}<div class="nyara-msg-time">${timeStr}</div>`;
+        } else {
+            msgDiv.className = `nyara-msg ${isUser ? 'nyara-msg-user' : 'nyara-msg-bot'}`;
+            msgDiv.innerHTML = `${text}<div class="nyara-msg-time">${timeStr}</div>`;
+        }
 
         body.appendChild(msgDiv);
         body.scrollTop = body.scrollHeight;
@@ -181,9 +207,32 @@
         if (skipBtn) skipBtn.remove();
     }
 
-    // Submit Complete Query to Backend (Google Sheet + Email to info@nyaraluxe.in)
+    // Poll server for live messages from Admin
+    function startPolling() {
+        if (pollInterval) return;
+        fetchAdminMessages();
+        pollInterval = setInterval(fetchAdminMessages, 3000);
+    }
+
+    function fetchAdminMessages() {
+        if (!sessionId) return;
+        fetch(`/api/chat-messages?sessionId=${encodeURIComponent(sessionId)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.messages)) {
+                    data.messages.forEach(msg => {
+                        if (msg.sender === 'admin') {
+                            appendMessage(msg.text, false, msg.id, true);
+                        }
+                    });
+                }
+            })
+            .catch(err => {});
+    }
+
     function submitFinalQuery() {
         const payload = {
+            sessionId: sessionId,
             sheetName: 'Customer Queries',
             category: flowState.category,
             name: flowState.userName || 'Website Customer',
@@ -255,20 +304,17 @@
                 hideTyping();
 
                 if (flowState.step === 1) {
-                    // Query text collected -> Ask Name
                     flowState.queryText = text;
                     flowState.step = 2;
                     appendMessage("Got it! Please enter your <strong>Full Name</strong>:", false);
 
                 } else if (flowState.step === 2) {
-                    // Name collected -> Ask Contact
                     flowState.userName = text;
                     flowState.step = 3;
                     showSkipButton();
                     appendMessage(`Thank you <strong>${flowState.userName}</strong>!<br><br>Please enter your <strong>Mobile Number</strong> or <strong>Email Address</strong> (Optional, so we can get back to you):`, false);
 
                 } else if (flowState.step === 3) {
-                    // Contact collected -> Complete & Submit
                     flowState.userContact = text;
                     flowState.step = 4;
 
@@ -281,10 +327,9 @@
                     👉 <a href="${waLink}" target="_blank" style="display:inline-block; background:#25D366; color:#FFF; padding:10px 16px; border-radius:20px; text-decoration:none; font-weight:bold;"><i class="fab fa-whatsapp"></i> Chat Live on WhatsApp Now</a>`, false);
 
                 } else {
-                    // Reset to Step 1 for new messages
+                    // Send ongoing message during live chat
                     flowState.queryText = text;
-                    flowState.step = 2;
-                    appendMessage("Thank you! Please enter your <strong>Full Name</strong> to update your request:", false);
+                    submitFinalQuery();
                 }
             }, 700);
         }
