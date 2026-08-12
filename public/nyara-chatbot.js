@@ -27,7 +27,7 @@
             const link = document.createElement('link');
             link.id = 'nyara-chatbot-css';
             link.rel = 'stylesheet';
-            link.href = 'nyara-chatbot.css';
+            link.href = 'nyara-chatbot.css?v=' + Date.now();
             document.head.appendChild(link);
         }
     }
