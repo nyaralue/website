@@ -1448,3 +1448,209 @@ function closeCropperForExisting() {
 // Make functions globally available
 window.deleteExistingMedia = deleteExistingMedia;
 window.cropExistingImage = cropExistingImage;
+
+// --- ADMIN LIVE CUSTOMER CHAT SYSTEM ---
+let selectedAdminChatSessionId = null;
+let adminChatPollInterval = null;
+
+function initAdminLiveChat() {
+    const liveTabBtn = document.getElementById('live-chat-tab-btn');
+    const prodTabBtn = document.getElementById('product-mgmt-tab-btn');
+    const livePanel = document.getElementById('live-chat-panel');
+    const prodSection = document.getElementById('products-mgmt-section');
+
+    if (liveTabBtn && prodTabBtn) {
+        liveTabBtn.addEventListener('click', () => {
+            if (livePanel) livePanel.style.display = 'block';
+            if (prodSection) prodSection.style.display = 'none';
+            fetchAdminChatSessions();
+            if (!adminChatPollInterval) {
+                adminChatPollInterval = setInterval(fetchAdminChatSessions, 3000);
+            }
+        });
+
+        prodTabBtn.addEventListener('click', () => {
+            if (livePanel) livePanel.style.display = 'none';
+            if (prodSection) prodSection.style.display = 'block';
+        });
+    }
+
+    setInterval(updateAdminOnlineBadge, 5000);
+    updateAdminOnlineBadge();
+}
+
+function updateAdminOnlineBadge() {
+    if (!authToken) return;
+    fetch('/api/admin/chat-sessions', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && Array.isArray(data.sessions)) {
+            const onlineCount = data.sessions.filter(s => s.isOnline).length;
+            const badge = document.getElementById('live-online-badge');
+            if (badge) {
+                badge.textContent = `${onlineCount} Online`;
+                badge.style.background = onlineCount > 0 ? '#27ae60' : '#888';
+            }
+        }
+    })
+    .catch(() => {});
+}
+
+function fetchAdminChatSessions() {
+    if (!authToken) return;
+    fetch('/api/admin/chat-sessions', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && Array.isArray(data.sessions)) {
+            renderAdminChatSessionsList(data.sessions);
+            if (selectedAdminChatSessionId) {
+                fetchAdminThreadMessages(selectedAdminChatSessionId);
+            }
+        }
+    })
+    .catch(err => console.error('Error fetching admin sessions:', err));
+}
+
+function renderAdminChatSessionsList(sessions) {
+    const listContainer = document.getElementById('admin-chat-sessions-list');
+    if (!listContainer) return;
+
+    if (sessions.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #888; font-size: 0.88rem;">No active chat sessions found.</div>';
+        return;
+    }
+
+    let html = '';
+    sessions.forEach(s => {
+        const isSelected = s.sessionId === selectedAdminChatSessionId;
+        const onlineDot = s.isOnline 
+            ? '<span style="display:inline-block; width:8px; height:8px; background:#27ae60; border-radius:50%; margin-right:4px;"></span> Online'
+            : '<span style="display:inline-block; width:8px; height:8px; background:#aaa; border-radius:50%; margin-right:4px;"></span> Offline';
+
+        html += `
+            <div onclick="selectAdminChatSession('${s.sessionId}')" style="padding: 12px; margin-bottom: 8px; border-radius: 10px; cursor: pointer; transition: background 0.2s; background: ${isSelected ? '#E2E8E3' : '#FFF'}; border: 1px solid ${isSelected ? '#2C3E2E' : '#E8E8E8'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: #2C3E2E; font-size: 0.92rem;">${escapeHtml(s.customerName)}</strong>
+                    <span style="font-size: 0.72rem; color: ${s.isOnline ? '#27ae60' : '#888'}; font-weight: bold;">${onlineDot}</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #666; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${escapeHtml(s.lastMessage)}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #999;">
+                    <span><i class="fas fa-link"></i> ${escapeHtml((s.pageUrl || '').replace('https://', '').replace('nyaraluxe.in', ''))}</span>
+                    <span>${s.lastMessageTime}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    listContainer.innerHTML = html;
+}
+
+function selectAdminChatSession(sid) {
+    selectedAdminChatSessionId = sid;
+    fetchAdminChatSessions();
+
+    const input = document.getElementById('admin-reply-input');
+    const sendBtn = document.getElementById('admin-reply-send-btn');
+    if (input) { input.disabled = false; input.focus(); }
+    if (sendBtn) sendBtn.disabled = false;
+}
+
+function fetchAdminThreadMessages(sid) {
+    if (!authToken || !sid) return;
+    fetch(`/api/admin/chat-messages/${encodeURIComponent(sid)}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const s = data.session;
+            document.getElementById('admin-customer-name').textContent = s.customerName || 'Customer';
+            document.getElementById('admin-customer-info').textContent = `Contact: ${s.customerContact || 'N/A'} | Page: ${s.pageUrl || 'Home'}`;
+            
+            const statusEl = document.getElementById('admin-customer-status');
+            const isOnline = (Date.now() - (s.lastActiveTime || 0)) < 120000;
+            statusEl.innerHTML = isOnline ? '<span style="color:#27ae60;">🟢 Active Online Now</span>' : '<span style="color:#888;">⚪ Offline</span>';
+
+            renderAdminThreadMessages(data.messages || []);
+        }
+    })
+    .catch(err => console.error('Thread fetch error:', err));
+}
+
+function renderAdminThreadMessages(messages) {
+    const windowEl = document.getElementById('admin-chat-messages');
+    if (!windowEl) return;
+
+    if (messages.length === 0) {
+        windowEl.innerHTML = '<div style="text-align: center; color: #AAA; margin-top: 60px;"><p>No messages in this conversation yet.</p></div>';
+        return;
+    }
+
+    let html = '';
+    messages.forEach(m => {
+        const isAdmin = m.sender === 'admin';
+        html += `
+            <div style="max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.9rem; line-height: 1.4; align-self: ${isAdmin ? 'flex-end' : 'flex-start'}; background: ${isAdmin ? 'linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%)' : '#EAF2EB'}; color: ${isAdmin ? '#FFF' : '#2C3E2E'}; border-bottom-${isAdmin ? 'right' : 'left'}-radius: 2px;">
+                <div style="font-size: 0.72rem; font-weight: bold; margin-bottom: 2px; opacity: 0.8;">
+                    ${isAdmin ? '👤 Owner (You)' : '💬 ' + escapeHtml(m.category || 'Customer')}
+                </div>
+                ${escapeHtml(m.text)}
+                <div style="font-size: 0.68rem; text-align: right; opacity: 0.7; margin-top: 4px;">${m.timestamp}</div>
+            </div>
+        `;
+    });
+
+    windowEl.innerHTML = html;
+    windowEl.scrollTop = windowEl.scrollHeight;
+}
+
+function handleAdminReplySubmit(event) {
+    event.preventDefault();
+    if (!selectedAdminChatSessionId || !authToken) return;
+
+    const input = document.getElementById('admin-reply-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+
+    fetch('/api/admin/chat-reply', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            sessionId: selectedAdminChatSessionId,
+            text: text
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            fetchAdminThreadMessages(selectedAdminChatSessionId);
+        } else {
+            alert('Failed to send reply: ' + (data.message || 'Error'));
+        }
+    })
+    .catch(err => alert('Network error sending reply.'));
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.handleAdminReplySubmit = handleAdminReplySubmit;
+window.selectAdminChatSession = selectAdminChatSession;
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initAdminLiveChat, 1000);
+});
+
