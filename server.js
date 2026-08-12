@@ -787,6 +787,56 @@ app.post('/api/help-request', async (req, res) => {
   }
 });
 
+// Chatbot Live User Online Ping Endpoint
+app.post('/api/chat-online', async (req, res) => {
+  try {
+    const { pageUrl, timestamp, device } = req.body;
+    const onlineData = {
+      type: 'chat_online',
+      productName: '⚡ Live Customer Opened Chat',
+      name: 'Active Website Visitor',
+      query: `Customer is active on page: ${pageUrl || 'Home Page'}`,
+      timestamp: timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    };
+
+    // Notify owner by email
+    await sendNotificationEmail(onlineData);
+
+    // Forward to Google Apps Script Webhook
+    await appendToGoogleSheet(onlineData);
+
+    res.json({ success: true, message: 'Online alert processed.' });
+  } catch (error) {
+    console.error('Error in chat-online alert:', error);
+    res.status(500).json({ success: false, message: 'Alert processing error' });
+  }
+});
+
+// Chatbot Query Logger Endpoint
+app.post('/api/chat-query', async (req, res) => {
+  try {
+    const { sheetName, name, query, botAnswer, timestamp, pageUrl } = req.body;
+
+    const chatQueryData = {
+      type: 'chat_query',
+      sheetName: sheetName || 'Customer Queries',
+      name: name || 'Website Visitor',
+      query: query || '',
+      botAnswer: botAnswer || '',
+      pageUrl: pageUrl || '',
+      timestamp: timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    };
+
+    // Forward to Webhook which logs to "Customer Queries" sheet tab
+    const result = await appendToGoogleSheet(chatQueryData);
+    res.json(result);
+  } catch (error) {
+    console.error('Error in chat-query logger:', error);
+    res.status(500).json({ success: false, message: 'Chat query logging error' });
+  }
+});
+
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
