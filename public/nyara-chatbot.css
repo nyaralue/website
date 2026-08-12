@@ -272,6 +272,18 @@
     border-color: #D4AF37;
 }
 
+.nyara-btn-wa {
+    background: #25D366;
+    color: #FFFFFF;
+    border-color: #128C7E;
+}
+
+.nyara-btn-wa:hover {
+    background: #128C7E;
+    color: #FFFFFF;
+    border-color: #25D366;
+}
+
 /* Typing Indicator */
 .nyara-typing-indicator {
     display: flex;
