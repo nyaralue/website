@@ -180,34 +180,56 @@ async function appendToGoogleSheet(data) {
 
     const sheets = await getGoogleSheetsClient();
 
-    if (sheets) {
-      const values = [
-        [
-          new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-          data.productName || '',
-          data.name || '',
-          data.phone || '',
-          data.address || '',
-          data.pincode || '',
-          data.email || '',
-          data.locationLink || '',
-          data.query || ''
-        ]
-      ];
+    if (sheets && data.type !== 'chat_online') {
+      let targetRange = GOOGLE_SHEET_RANGE; // 'Sheet1' for Product Orders
+      let values = [];
 
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: GOOGLE_SHEET_ID,
-        range: GOOGLE_SHEET_RANGE,
-        valueInputOption: 'RAW',
-        resource: { values: values }
-      });
+      if (data.type === 'chat_query' || data.sheetName === 'Customer Queries') {
+        targetRange = 'Customer Queries';
+        values = [
+          [
+            new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            data.category || 'General Query',
+            data.name || 'Website Visitor',
+            data.phone || data.email || 'Not provided',
+            data.rawQuery || data.query || '',
+            data.pageUrl || ''
+          ]
+        ];
+      } else {
+        // Product Orders ONLY -> Sheet1
+        values = [
+          [
+            new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            data.productName || '',
+            data.name || '',
+            data.phone || '',
+            data.address || '',
+            data.pincode || '',
+            data.email || '',
+            data.locationLink || '',
+            data.query || ''
+          ]
+        ];
+      }
+
+      try {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: GOOGLE_SHEET_ID,
+          range: targetRange,
+          valueInputOption: 'RAW',
+          resource: { values: values }
+        });
+      } catch (sheetsErr) {
+        console.log('Google Sheets API direct append fallback error:', sheetsErr.message);
+      }
     }
 
-    return { success: true, message: 'Your order has been submitted to Google Sheet successfully.' };
+    return { success: true, message: 'Submitted successfully.' };
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
-    return { success: false, message: 'Error processing Google Sheet submission.' };
+    return { success: false, message: 'Error processing submission.' };
   }
 }
 

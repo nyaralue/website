@@ -18,4 +18,7 @@ const chatSessionSchema = new mongoose.Schema({
     messages: [chatMessageSchema]
 }, { timestamps: true });
 
+// Auto-delete / expire session from MongoDB 1 hour (3600 seconds) after last activity
+chatSessionSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 3600 });
+
 module.exports = mongoose.model('ChatSession', chatSessionSchema);
