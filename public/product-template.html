@@ -584,7 +584,7 @@
                 <button type="button" class="buy-button nyara-direct-buy-btn" onclick="openCheckoutModal('${(product.name || 'Product').replace(/'/g, "\\'")}', ${priceNum}, '${product.id || product._id}')" style="background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: white; border: 1px solid #D4AF37; padding: 14px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(44, 62, 46, 0.3);">
                     <span style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-crown" style="color: #D4AF37;"></i>
-                        <span>Buy from Nyara Luxe (20% OFF)</span>
+                        <span>Buy Directly from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; margin-left: 4px;">EXTRA 20% OFF</small></span>
                         <small style="background: #27ae60; color: #FFF; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">FREE Delivery</small>
                     </span>
                     <span>
@@ -634,7 +634,25 @@
                             </div>
                         </div>
                         
-                        <p class="product-price" data-testid="product-price"><s style="opacity: 0.6; font-size: 0.85em; font-weight: normal; margin-right: 8px;">₹${mrpPrice.toLocaleString()}</s><strong style="color: #2C3E2E;">₹${discountedPrice.toLocaleString()}</strong> <span style="font-size: 0.8rem; background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 700; margin-left: 6px; vertical-align: middle;">FREE Delivery</span></p>
+                        <p class="product-price" data-testid="product-price">
+                            <span style="font-size: 0.85em; color: #666; font-weight: 500; margin-right: 4px;">MRP:</span><strong style="color: #2C3E2E;">₹${mrpPrice.toLocaleString()}</strong>
+                            <span style="font-size: 0.8rem; background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 700; margin-left: 8px; vertical-align: middle;">FREE Delivery</span>
+                        </p>
+                        
+                        <div class="nyara-exclusive-deal" style="background: linear-gradient(135deg, #FAF7F0 0%, #F5EFE1 100%); border: 1.5px dashed #D4AF37; border-radius: 10px; padding: 12px 16px; margin: 15px 0 20px 0; display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #2C3E2E; color: #D4AF37; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(44, 62, 46, 0.15);">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-weight: 700; color: #2C3E2E; font-size: 0.95rem;">Exclusive Direct Order Offer</span>
+                                    <span style="background: #D4AF37; color: #1A281B; font-weight: 800; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">EXTRA 20% OFF</span>
+                                </div>
+                                <p style="margin: 3px 0 0 0; font-size: 0.86rem; color: #555; line-height: 1.4;">
+                                    Order directly from Nyara Luxe & pay only <strong style="color: #2C3E2E; font-size: 1.05rem;">₹${discountedPrice.toLocaleString()}</strong> <s style="opacity: 0.6; margin-left: 4px;">₹${mrpPrice.toLocaleString()}</s> (You save ₹${(mrpPrice - discountedPrice).toLocaleString()})
+                                </p>
+                            </div>
+                        </div>
                         
                         ${product.description ? `
                         <div class="product-description-section">

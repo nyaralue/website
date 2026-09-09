@@ -110,6 +110,9 @@ function displayProducts() {
             <div class="product-grid-card" data-testid="product-card-${product.id || product._id}">
                 <a href="${productDetailUrl}" class="product-grid-image-link">
                     <div class="product-grid-image" id="card-image-${product._id}">
+                        <span class="product-badge-overlay" style="position: absolute; top: 10px; left: 10px; background: rgba(44, 62, 46, 0.92); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; z-index: 2; pointer-events: none; letter-spacing: 0.3px; backdrop-filter: blur(4px);">
+                            <i class="fas fa-tag"></i> UP TO 20% OFF INSIDE
+                        </span>
                         ${hasMultipleImages ? `
                             <button class="product-carousel-btn prev" onclick="event.preventDefault(); prevCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-left"></i></button>
                             <button class="product-carousel-btn next" onclick="event.preventDefault(); nextCardImage(event, '${product._id}', ${JSON.stringify(allMedia).replace(/"/g, '&quot;')})"><i class="fas fa-chevron-right"></i></button>
@@ -126,7 +129,16 @@ function displayProducts() {
                         <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
                     </a>
                     ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
-                    ${product.price ? `<div class="product-grid-price"><s style="opacity: 0.6; font-size: 0.85em; font-weight: normal; margin-right: 6px;">₹${Math.round(parseFloat(product.price) * 1.30).toLocaleString()}</s><strong style="color: #2C3E2E;">₹${Math.round(parseFloat(product.price) * 1.30 * 0.80).toLocaleString()}</strong> <span style="font-size: 0.7rem; background: #27ae60; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px; vertical-align: middle;">FREE Delivery</span></div>` : ''}
+                    ${product.price ? `
+                    <div class="product-grid-price">
+                        <span style="font-size: 0.8em; color: #666; font-weight: 500; margin-right: 3px;">MRP:</span><strong style="color: #2C3E2E;">₹${Math.round(parseFloat(product.price) * 1.30).toLocaleString()}</strong>
+                        <span style="font-size: 0.7rem; background: #27ae60; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px; vertical-align: middle;">FREE Delivery</span>
+                    </div>
+                    <div class="product-grid-offer" style="margin-top: -3px; margin-bottom: 8px;">
+                        <span style="font-size: 0.72rem; color: #8A6D1C; background: #FDF7E7; border: 1px dashed #D4AF37; padding: 2px 7px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-bolt" style="color: #D4AF37;"></i> Get extra 20% OFF inside
+                        </span>
+                    </div>` : ''}
                     
                     <div class="product-grid-actions">
                         <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${product.id || product._id}">
@@ -239,7 +251,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     nyaraBtn.innerHTML = `
         <span style="display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-crown" style="color: #D4AF37; font-size: 1.1rem;"></i>
-            <span>Buy from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; font-weight: 700;">20% OFF</small> <small style="background: #27ae60; color: #FFF; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 2px;">FREE Delivery</small></span>
+            <span>Buy Directly from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; font-weight: 700;">EXTRA 20% OFF</small> <small style="background: #27ae60; color: #FFF; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 2px;">FREE Delivery</small></span>
         </span>
         <span style="font-size: 0.95rem;">
             ${mrpPrice > 0 ? `<s style="opacity: 0.65; margin-right: 6px; font-size: 0.85em;">₹${mrpPrice.toLocaleString()}</s><strong style="color: #D4AF37; font-size: 1.05em;">₹${discountedPrice.toLocaleString()}</strong>` : '<span style="color: #D4AF37;">20% OFF</span>'}

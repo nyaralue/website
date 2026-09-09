@@ -307,7 +307,7 @@ class StaggerCarousel {
 
             <div class="stagger-card-content">
                 <h3 class="stagger-card-title">"${product.name}"</h3>
-                ${product.price ? `<p class="stagger-card-price">₹${product.price}</p>` : ''}
+                ${product.price ? `<p class="stagger-card-price">₹${Math.round(parseFloat(product.price) * 1.30).toLocaleString()}</p>` : ''}
                 ${product.sku ? `<p class="stagger-card-sku">SKU: ${product.sku}</p>` : ''}
             </div>
 
