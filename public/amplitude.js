@@ -4,7 +4,7 @@
     // AMPLITUDE API KEY CONFIGURATION
     // -------------------------------------------------------------
     // Set your Amplitude Project API Key here, or define window.AMPLITUDE_API_KEY prior to script load.
-    const DEFAULT_KEY = 'YOUR_AMPLITUDE_API_KEY';
+    const DEFAULT_KEY = 'b77cd9b20bc5f120be24f3e5d0dac07f';
     const AMPLITUDE_API_KEY = window.AMPLITUDE_API_KEY || DEFAULT_KEY;
 
     if (!AMPLITUDE_API_KEY || AMPLITUDE_API_KEY === 'YOUR_AMPLITUDE_API_KEY') {
