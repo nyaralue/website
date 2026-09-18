@@ -104,9 +104,15 @@ function displayProducts() {
         const hasMultipleImages = allMedia.length > 1;
         const productDetailUrl = `product.html?id=${product.id || product._id}`;
 
+        const safeProductName = (product.name || 'Product Name').replace(/'/g, "\\'");
+        const safeProductId = product.id || product._id || '';
+        const prodPrice = parseFloat(product.price) || 0;
+        const prodCat = product.category || 'Uncategorized';
+        const cardTrackClick = `if(window.trackAmplitudeEvent) window.trackAmplitudeEvent('Product Card Clicked', { product_name: '${safeProductName}', product_id: '${safeProductId}', category: '${prodCat}', price: ${prodPrice} });`;
+
         return `
-            <div class="product-grid-card" data-testid="product-card-${product.id || product._id}">
-                <a href="${productDetailUrl}" class="product-grid-image-link">
+            <div class="product-grid-card" data-testid="product-card-${safeProductId}">
+                <a href="${productDetailUrl}" class="product-grid-image-link" onclick="${cardTrackClick}">
                     <div class="product-grid-image" id="card-image-${product._id}">
                         <span class="product-badge-overlay" style="position: absolute; top: 10px; left: 10px; background: rgba(44, 62, 46, 0.92); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; z-index: 2; pointer-events: none; letter-spacing: 0.3px; backdrop-filter: blur(4px);">
                             <i class="fas fa-tag"></i> UP TO 20% OFF INSIDE
@@ -122,14 +128,14 @@ function displayProducts() {
                 </a>
                 
                 <div class="product-grid-info">
-                    <div class="product-grid-category">${(product.category || 'Uncategorized').toUpperCase()}</div>
-                    <a href="${productDetailUrl}" class="product-name-link">
+                    <div class="product-grid-category">${prodCat.toUpperCase()}</div>
+                    <a href="${productDetailUrl}" class="product-name-link" onclick="${cardTrackClick}">
                         <h3 class="product-grid-name">${product.name || 'Product Name'}</h3>
                     </a>
                     ${product.sku ? `<p class="product-grid-sku">SKU: ${product.sku}</p>` : ''}
                     ${product.price ? `
                     <div class="product-grid-price">
-                        <span style="font-size: 0.8em; color: #666; font-weight: 500; margin-right: 3px;">MRP:</span><strong style="color: #2C3E2E;">₹${Math.round(parseFloat(product.price) * 1.30).toLocaleString()}</strong>
+                        <span style="font-size: 0.8em; color: #666; font-weight: 500; margin-right: 3px;">MRP:</span><strong style="color: #2C3E2E;">₹${Math.round(prodPrice * 1.30).toLocaleString()}</strong>
                         <span style="font-size: 0.7rem; background: #27ae60; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px; vertical-align: middle;">FREE Delivery</span>
                     </div>
                     <div class="product-grid-offer" style="margin-top: -3px; margin-bottom: 8px;">
@@ -139,10 +145,10 @@ function displayProducts() {
                     </div>` : ''}
                     
                     <div class="product-grid-actions">
-                        <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${product.id || product._id}">
+                        <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${safeProductId}" onclick="${cardTrackClick}">
                             View Details
                         </a>
-                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${(product.name || 'Product').replace(/'/g, "\\'")}', ${product.price || 0})" data-testid="buy-now-${product.id || product._id}">
+                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${safeProductName}', ${prodPrice}, '${safeProductId}')" data-testid="buy-now-${safeProductId}">
                             Buy Now
                         </button>
                     </div>
@@ -172,41 +178,72 @@ function prevCardImage(event, productId, mediaArray) {
 }
 
 function updateCardImage(productId, mediaArray) {
-    const index = cardImageIndices[productId];
-    const media = mediaArray[index];
-    const isVideo = media && (media.includes('.mp4') || media.includes('.mov') || media.includes('.avi') || media.includes('.webm'));
-
     const container = document.getElementById(`card-image-${productId}`);
-    const count = document.getElementById(`count-${productId}`);
+    const countEl = document.getElementById(`count-${productId}`);
+    if (!container) return;
 
-    // Update count
-    if (count) count.textContent = `${index + 1}/${mediaArray.length}`;
+    const currentIndex = cardImageIndices[productId] || 0;
+    const mediaUrl = mediaArray[currentIndex];
+    const isVideo = mediaUrl && (mediaUrl.includes('.mp4') || mediaUrl.includes('.mov') || mediaUrl.includes('.avi') || mediaUrl.includes('.webm'));
 
-    // Find existing media element
-    const existingImg = container.querySelector('img');
-    const existingVideo = container.querySelector('video');
-    const existingMedia = existingImg || existingVideo;
-
-    let newMediaElement;
-
-    if (isVideo) {
-        newMediaElement = document.createElement('video');
-        newMediaElement.src = media;
-        newMediaElement.autoplay = true;
-        newMediaElement.muted = true;
-        newMediaElement.loop = true;
-        newMediaElement.playsInline = true;
-        newMediaElement.className = `product-media-${productId}`;
-    } else {
-        newMediaElement = document.createElement('img');
-        newMediaElement.src = media;
-        newMediaElement.alt = "Product Image";
-        newMediaElement.className = `product-media-${productId}`;
+    const imgEl = container.querySelector('img, video');
+    if (imgEl) {
+        if (isVideo) {
+            imgEl.outerHTML = `<video autoplay muted loop playsinline><source src="${mediaUrl}" type="video/mp4"></video>`;
+        } else {
+            if (imgEl.tagName === 'VIDEO') {
+                imgEl.outerHTML = `<img src="${mediaUrl}" alt="Product image">`;
+            } else {
+                imgEl.src = mediaUrl;
+            }
+        }
     }
 
-    if (existingMedia) {
-        container.replaceChild(newMediaElement, existingMedia);
+    if (countEl) {
+        countEl.textContent = `${currentIndex + 1}/${mediaArray.length}`;
     }
+}
+
+// Filter and sort products
+function filterAndSortProducts(category, sortBy = 'featured') {
+    let filtered = category === 'all'
+        ? [...allProducts]
+        : allProducts.filter(p => p.category && p.category.toLowerCase() === category.toLowerCase());
+
+    if (sortBy === 'price-low') {
+        filtered.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+    } else if (sortBy === 'price-high') {
+        filtered.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+    } else if (sortBy === 'name') {
+        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    return filtered;
+}
+
+// Render categories navigation
+function renderCategories(categories) {
+    const nav = document.getElementById('categories-nav');
+    if (!nav) return;
+
+    const allBtn = `
+        <button class="category-pill active" data-category="all">
+            All Products (${allProducts.length})
+        </button>
+    `;
+
+    const categoryBtns = categories.map(cat => `
+        <button class="category-pill" data-category="${cat.name}">
+            ${cat.name} (${cat.count || 0})
+        </button>
+    `).join('');
+
+    nav.innerHTML = `
+        <div class="categories-wrapper">
+            ${allBtn}
+            ${categoryBtns}
+        </div>
+    `;
 }
 
 // Show empty state
@@ -221,7 +258,7 @@ function showEmptyState(message) {
 }
 
 // Show ecommerce platform selection modal
-function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price) {
+function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price, productId) {
     const modal = document.getElementById('ecommerce-modal');
     const modalTitle = document.getElementById('ecommerce-modal-title');
     const platformsContainer = document.getElementById('ecommerce-platforms');
@@ -229,9 +266,14 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     modalTitle.textContent = `Purchase ${productName}`;
     platformsContainer.innerHTML = '';
 
+    const priceNum = parseFloat(price) || 0;
+    const mrpPrice = Math.round(priceNum * 1.30); // 30% increased MRP
+    const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : null; // 20% OFF
+
     if (window.trackAmplitudeEvent) {
         window.trackAmplitudeEvent('Product Modal Viewed', {
             product_name: productName,
+            product_id: productId || 'unknown',
             price: priceNum,
             mrp: mrpPrice,
             discounted_price: discountedPrice
@@ -239,9 +281,6 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     }
 
     let hasLinks = false;
-    const priceNum = parseFloat(price) || 0;
-    const mrpPrice = Math.round(priceNum * 1.30); // 30% increased MRP
-    const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : null; // 20% OFF
 
     // 1. Featured Option: Buy from Nyara Luxe (20% OFF + FREE Delivery)
     hasLinks = true;
@@ -260,10 +299,10 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     `;
 
     nyaraBtn.addEventListener('click', () => {
-        if (window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', productName);
+        if (window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', productName, productId);
         modal.classList.remove('show');
         if (window.openCheckoutModal) {
-            window.openCheckoutModal(productName, priceNum);
+            window.openCheckoutModal(productName, priceNum, productId);
         } else {
             alert('Checkout module loading... Please try again.');
         }
@@ -278,7 +317,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         amazonBtn.className = 'ecommerce-platform-btn';
         amazonBtn.innerHTML = `<span>Buy on Amazon</span>`;
         amazonBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Amazon', productName);
+            if (window.trackPlatformClick) window.trackPlatformClick('Amazon', productName, productId);
         });
         platformsContainer.appendChild(amazonBtn);
     }
@@ -291,7 +330,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         flipkartBtn.className = 'ecommerce-platform-btn';
         flipkartBtn.innerHTML = `<span>Buy on Flipkart</span>`;
         flipkartBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Flipkart', productName);
+            if (window.trackPlatformClick) window.trackPlatformClick('Flipkart', productName, productId);
         });
         platformsContainer.appendChild(flipkartBtn);
     }
@@ -304,7 +343,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         meeshoBtn.className = 'ecommerce-platform-btn';
         meeshoBtn.innerHTML = `<span>Buy on Meesho</span>`;
         meeshoBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Meesho', productName);
+            if (window.trackPlatformClick) window.trackPlatformClick('Meesho', productName, productId);
         });
         platformsContainer.appendChild(meeshoBtn);
     }
