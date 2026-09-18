@@ -58,7 +58,7 @@
                         </div>
                     </div>
                     <div class="nyara-chat-header-actions">
-                        <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20want%20to%20chat%20live." target="_blank" class="nyara-chat-header-btn" title="Chat 1-on-1 on WhatsApp">
+                        <a href="https://wa.me/917690082033?text=Hi%20Nyara%20Luxe!%20I%20want%20to%20chat%20live." target="_blank" class="nyara-chat-header-btn" title="Chat 1-on-1 on WhatsApp" onclick="if(window.trackAmplitudeEvent) window.trackAmplitudeEvent('Chatbot WhatsApp Clicked', { source: 'header_icon' });">
                             <i class="fab fa-whatsapp" style="color: #25D366; font-size: 16px;"></i>
                         </a>
                         <button id="nyara-chat-close-btn" class="nyara-chat-header-btn" title="Close Chat">&times;</button>
@@ -116,6 +116,11 @@
         if (badge) badge.style.display = 'none';
 
         if (isOpening) {
+            if (typeof window.trackAmplitudeEvent === 'function') {
+                window.trackAmplitudeEvent('Chatbot Opened', {
+                    sessionId: sessionId
+                });
+            }
             startPolling();
             if (!hasSentOnlineAlert) {
                 hasSentOnlineAlert = true;
@@ -242,6 +247,22 @@
             timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
         };
 
+        if (typeof window.trackAmplitudeEvent === 'function') {
+            window.trackAmplitudeEvent('Chatbot Query Submitted', {
+                category: flowState.category,
+                user_name: flowState.userName || 'Website Customer',
+                has_contact: Boolean(flowState.userContact && flowState.userContact !== 'Not provided'),
+                sessionId: sessionId
+            });
+        }
+
+        if (flowState.userName && typeof window.identifyAmplitudeUser === 'function') {
+            window.identifyAmplitudeUser(sessionId, {
+                name: flowState.userName,
+                contact: flowState.userContact
+            });
+        }
+
         fetch('/api/chat-query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -251,6 +272,12 @@
 
     window.NyaraChat = {
         openWhatsAppDirect: function () {
+            if (typeof window.trackAmplitudeEvent === 'function') {
+                window.trackAmplitudeEvent('Chatbot WhatsApp Clicked', {
+                    source: 'menu_option',
+                    sessionId: sessionId
+                });
+            }
             appendMessage("💬 Chat Live on WhatsApp", true);
             showTyping();
             setTimeout(() => {
@@ -264,6 +291,13 @@
         selectCategory: function (catName) {
             flowState.category = catName;
             flowState.step = 1;
+
+            if (typeof window.trackAmplitudeEvent === 'function') {
+                window.trackAmplitudeEvent('Chatbot Category Selected', {
+                    category: catName,
+                    sessionId: sessionId
+                });
+            }
 
             hideMenuOptions();
             appendMessage(catName, true);

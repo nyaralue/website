@@ -16,6 +16,8 @@
     <link rel="icon" href="Nyara_Home_Visiting_Card-removebg-preview.png" type="image/png">
     <!-- Google Analytics 4 -->
     <script src="ga4.js"></script>
+    <!-- Amplitude Analytics -->
+    <script src="amplitude.js"></script>
     <script src="razorpay.js"></script>
     <script src="checkout-modal.js"></script>
     <style>
@@ -580,8 +582,20 @@
             const mrpPrice = Math.round(priceNum * 1.30); // 30% increased MRP
             const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : 0; // 20% OFF
 
+            const safeName = (product.name || 'Product').replace(/'/g, "\\'");
+            const safeId = product.id || product._id || '';
+
+            if (window.trackAmplitudeEvent) {
+                window.trackAmplitudeEvent('Product Detail Page Viewed', {
+                    product_name: product.name,
+                    product_id: safeId,
+                    category: product.category,
+                    price: priceNum
+                });
+            }
+
             let buyButtonsHtml = `
-                <button type="button" class="buy-button nyara-direct-buy-btn" onclick="openCheckoutModal('${(product.name || 'Product').replace(/'/g, "\\'")}', ${priceNum}, '${product.id || product._id}')" style="background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: white; border: 1px solid #D4AF37; padding: 14px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(44, 62, 46, 0.3);">
+                <button type="button" class="buy-button nyara-direct-buy-btn" onclick="if(window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', '${safeName}', '${safeId}'); openCheckoutModal('${safeName}', ${priceNum}, '${safeId}')" style="background: linear-gradient(135deg, #2C3E2E 0%, #3D523F 100%); color: white; border: 1px solid #D4AF37; padding: 14px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(44, 62, 46, 0.3);">
                     <span style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-crown" style="color: #D4AF37;"></i>
                         <span>Buy Directly from Nyara Luxe <small style="background: #D4AF37; color: #1A281B; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; margin-left: 4px;">EXTRA 20% OFF</small></span>
@@ -595,7 +609,7 @@
             
             if (product.amazonLink) {
                 buyButtonsHtml += `
-                    <a href="${product.amazonLink}" target="_blank" class="buy-button amazon" data-testid="buy-amazon">
+                    <a href="${product.amazonLink}" target="_blank" onclick="if(window.trackPlatformClick) window.trackPlatformClick('Amazon', '${safeName}', '${safeId}')" class="buy-button amazon" data-testid="buy-amazon">
                         <i class="fab fa-amazon"></i>
                         Buy on Amazon
                     </a>`;
@@ -603,7 +617,7 @@
 
             if (product.flipkartLink) {
                 buyButtonsHtml += `
-                    <a href="${product.flipkartLink}" target="_blank" class="buy-button flipkart" data-testid="buy-flipkart">
+                    <a href="${product.flipkartLink}" target="_blank" onclick="if(window.trackPlatformClick) window.trackPlatformClick('Flipkart', '${safeName}', '${safeId}')" class="buy-button flipkart" data-testid="buy-flipkart">
                         <i class="fas fa-shopping-bag"></i>
                         Buy on Flipkart
                     </a>`;
@@ -611,7 +625,7 @@
 
             if (product.meeshoLink) {
                 buyButtonsHtml += `
-                    <a href="${product.meeshoLink}" target="_blank" class="buy-button meesho" data-testid="buy-meesho">
+                    <a href="${product.meeshoLink}" target="_blank" onclick="if(window.trackPlatformClick) window.trackPlatformClick('Meesho', '${safeName}', '${safeId}')" class="buy-button meesho" data-testid="buy-meesho">
                         <i class="fas fa-shopping-cart"></i>
                         Buy on Meesho
                     </a>`;

@@ -78,6 +78,18 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {})
                 });
             }
 
+            // Amplitude Purchase Event Tracking
+            if (window.trackAmplitudeEvent) {
+                window.trackAmplitudeEvent('Order Placed', {
+                    transaction_id: paymentId,
+                    amount: discountedPrice,
+                    currency: 'INR',
+                    product_name: productName,
+                    product_sku: productId || 'unknown',
+                    payment_method: 'Razorpay'
+                });
+            }
+
             // Close platform modal if open
             const modal = document.getElementById('ecommerce-modal');
             if (modal) modal.classList.remove('show');
@@ -89,6 +101,15 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {})
 
     const rzp = new window.Razorpay(options);
     rzp.on('payment.failed', function (response) {
+        if (window.trackAmplitudeEvent) {
+            window.trackAmplitudeEvent('Payment Failed', {
+                product_name: productName,
+                product_sku: productId || 'unknown',
+                amount: discountedPrice,
+                error_code: response.error?.code,
+                error_description: response.error?.description
+            });
+        }
         alert(`Payment Cancelled or Failed: ${response.error.description || ''}`);
     });
     rzp.open();

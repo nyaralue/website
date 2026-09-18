@@ -31,6 +31,7 @@ async function loadCategories() {
 
                 // Update current category
                 currentCategory = cat.name;
+                if (window.trackAmplitudeEvent) window.trackAmplitudeEvent('Category Filter Selected', { category: cat.name });
                 displayProducts();
             });
             filterContainer.appendChild(btn);
@@ -236,6 +237,15 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
 
     modalTitle.textContent = `Purchase ${productName}`;
     platformsContainer.innerHTML = '';
+
+    if (window.trackAmplitudeEvent) {
+        window.trackAmplitudeEvent('Product Modal Viewed', {
+            product_name: productName,
+            price: priceNum,
+            mrp: mrpPrice,
+            discounted_price: discountedPrice
+        });
+    }
 
     let hasLinks = false;
     const priceNum = parseFloat(price) || 0;

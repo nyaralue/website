@@ -115,6 +115,15 @@ function openCheckoutModal(productName, price, productId) {
 
     const modal = document.getElementById('checkout-form-modal');
     modal.style.display = 'flex';
+
+    if (window.trackAmplitudeEvent) {
+        window.trackAmplitudeEvent('Checkout Modal Opened', {
+            product_name: productName,
+            product_id: productId || 'unknown',
+            mrp: mrpPrice,
+            discounted_price: discountedPrice
+        });
+    }
 }
 
 function closeCheckoutModal() {
@@ -167,6 +176,24 @@ function handleCheckoutSubmit(event) {
         email: email,
         locationLink: location
     };
+
+    // Track user identity and form submission in Amplitude
+    if (window.identifyAmplitudeUser) {
+        window.identifyAmplitudeUser(phone, {
+            name: name,
+            email: email,
+            phone: phone,
+            pincode: pincode
+        });
+    }
+
+    if (window.trackAmplitudeEvent) {
+        window.trackAmplitudeEvent('Checkout Form Submitted', {
+            product_name: currentCheckoutProduct ? currentCheckoutProduct.name : 'Product',
+            amount: currentCheckoutProduct ? currentCheckoutProduct.price : 0,
+            pincode: pincode
+        });
+    }
 
     // Close the customer form modal
     closeCheckoutModal();
