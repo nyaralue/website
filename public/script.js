@@ -108,7 +108,7 @@ function displayProducts() {
         const safeProductId = product.id || product._id || '';
         const prodPrice = parseFloat(product.price) || 0;
         const prodCat = product.category || 'Uncategorized';
-        const cardTrackClick = `if(window.trackAmplitudeEvent) window.trackAmplitudeEvent('Product Card Clicked', { product_name: '${safeProductName}', product_id: '${safeProductId}', category: '${prodCat}', price: ${prodPrice} });`;
+        const cardTrackClick = `if(window.trackAmplitudeEvent) { window.trackAmplitudeEvent('Product Clicked', { product_name: '${safeProductName}', product_id: '${safeProductId}', category: '${prodCat}', price: ${prodPrice} }); window.trackAmplitudeEvent('Product Card Clicked', { product_name: '${safeProductName}', product_id: '${safeProductId}', category: '${prodCat}', price: ${prodPrice} }); }`;
 
         return `
             <div class="product-grid-card" data-testid="product-card-${safeProductId}">
@@ -148,7 +148,7 @@ function displayProducts() {
                         <a href="${productDetailUrl}" class="product-view-btn" data-testid="view-details-${safeProductId}" onclick="${cardTrackClick}">
                             View Details
                         </a>
-                        <button class="product-grid-buy-btn" onclick="showEcommerceModal('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${safeProductName}', ${prodPrice}, '${safeProductId}')" data-testid="buy-now-${safeProductId}">
+                        <button class="product-grid-buy-btn" onclick="handleBuyNowGridClick('${product.amazonLink || ''}', '${product.flipkartLink || ''}', '${product.meeshoLink || ''}', '${safeProductName}', ${prodPrice}, '${safeProductId}', '${prodCat}')" data-testid="buy-now-${safeProductId}">
                             Buy Now
                         </button>
                     </div>
@@ -257,8 +257,29 @@ function showEmptyState(message) {
     `;
 }
 
+// Handle Buy Now button click from product grid card
+function handleBuyNowGridClick(amazonLink, flipkartLink, meeshoLink, productName, price, productId, category) {
+    const priceNum = parseFloat(price) || 0;
+    const mrpPrice = Math.round(priceNum * 1.30);
+    const discountedPrice = mrpPrice > 0 ? Math.round(mrpPrice * 0.80) : null;
+
+    if (window.trackAmplitudeEvent) {
+        window.trackAmplitudeEvent('Buy Now Clicked', {
+            product_name: productName,
+            product_id: productId || 'unknown',
+            category: category || 'Uncategorized',
+            price: priceNum,
+            mrp: mrpPrice,
+            discounted_price: discountedPrice,
+            source: 'home_grid_card'
+        });
+    }
+
+    showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price, productId, category);
+}
+
 // Show ecommerce platform selection modal
-function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price, productId) {
+function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, price, productId, category = 'Uncategorized') {
     const modal = document.getElementById('ecommerce-modal');
     const modalTitle = document.getElementById('ecommerce-modal-title');
     const platformsContainer = document.getElementById('ecommerce-platforms');
@@ -274,6 +295,7 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         window.trackAmplitudeEvent('Product Modal Viewed', {
             product_name: productName,
             product_id: productId || 'unknown',
+            category: category,
             price: priceNum,
             mrp: mrpPrice,
             discounted_price: discountedPrice
@@ -299,10 +321,18 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
     `;
 
     nyaraBtn.addEventListener('click', () => {
-        if (window.trackPlatformClick) window.trackPlatformClick('Nyara Luxe Direct', productName, productId);
+        if (window.trackPlatformClick) {
+            window.trackPlatformClick('Nyara Luxe Direct', productName, productId, {
+                price: priceNum,
+                mrp: mrpPrice,
+                discounted_price: discountedPrice,
+                category: category,
+                source: 'ecommerce_modal'
+            });
+        }
         modal.classList.remove('show');
         if (window.openCheckoutModal) {
-            window.openCheckoutModal(productName, priceNum, productId);
+            window.openCheckoutModal(productName, priceNum, productId, category);
         } else {
             alert('Checkout module loading... Please try again.');
         }
@@ -317,7 +347,15 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         amazonBtn.className = 'ecommerce-platform-btn';
         amazonBtn.innerHTML = `<span>Buy on Amazon</span>`;
         amazonBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Amazon', productName, productId);
+            if (window.trackPlatformClick) {
+                window.trackPlatformClick('Amazon', productName, productId, {
+                    price: priceNum,
+                    mrp: mrpPrice,
+                    discounted_price: discountedPrice,
+                    category: category,
+                    source: 'ecommerce_modal'
+                });
+            }
         });
         platformsContainer.appendChild(amazonBtn);
     }
@@ -330,7 +368,15 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         flipkartBtn.className = 'ecommerce-platform-btn';
         flipkartBtn.innerHTML = `<span>Buy on Flipkart</span>`;
         flipkartBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Flipkart', productName, productId);
+            if (window.trackPlatformClick) {
+                window.trackPlatformClick('Flipkart', productName, productId, {
+                    price: priceNum,
+                    mrp: mrpPrice,
+                    discounted_price: discountedPrice,
+                    category: category,
+                    source: 'ecommerce_modal'
+                });
+            }
         });
         platformsContainer.appendChild(flipkartBtn);
     }
@@ -343,7 +389,15 @@ function showEcommerceModal(amazonLink, flipkartLink, meeshoLink, productName, p
         meeshoBtn.className = 'ecommerce-platform-btn';
         meeshoBtn.innerHTML = `<span>Buy on Meesho</span>`;
         meeshoBtn.addEventListener('click', () => {
-            if (window.trackPlatformClick) window.trackPlatformClick('Meesho', productName, productId);
+            if (window.trackPlatformClick) {
+                window.trackPlatformClick('Meesho', productName, productId, {
+                    price: priceNum,
+                    mrp: mrpPrice,
+                    discounted_price: discountedPrice,
+                    category: category,
+                    source: 'ecommerce_modal'
+                });
+            }
         });
         platformsContainer.appendChild(meeshoBtn);
     }

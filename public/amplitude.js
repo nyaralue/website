@@ -3,7 +3,6 @@
     // -------------------------------------------------------------
     // AMPLITUDE API KEY CONFIGURATION
     // -------------------------------------------------------------
-    // Set your Amplitude Project API Key here, or define window.AMPLITUDE_API_KEY prior to script load.
     const DEFAULT_KEY = 'b77cd9b20bc5f120be24f3e5d0dac07f';
     const AMPLITUDE_API_KEY = window.AMPLITUDE_API_KEY || DEFAULT_KEY;
 
@@ -11,8 +10,32 @@
         console.warn('[Amplitude] Running with placeholder API Key. Replace YOUR_AMPLITUDE_API_KEY in amplitude.js or set window.AMPLITUDE_API_KEY to start recording live data.');
     }
 
-    // Queue for events fired before SDK is initialized
+    // Queues for events and identify calls fired before SDK is initialized
     window.amplitudeQueue = window.amplitudeQueue || [];
+    window.amplitudeIdentifyQueue = window.amplitudeIdentifyQueue || [];
+
+    // Helper: Detect device type
+    function getDeviceType() {
+        const ua = navigator.userAgent || '';
+        if (/tablet|ipad|playbook|silk/i.test(ua)) return 'Tablet';
+        if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle/i.test(ua)) return 'Mobile';
+        return 'Desktop';
+    }
+
+    // Helper: Extract UTM parameters from URL
+    function getUtmParameters() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const utm = {};
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach(key => {
+                const val = params.get(key);
+                if (val) utm[key] = val;
+            });
+            return utm;
+        } catch (e) {
+            return {};
+        }
+    }
 
     // Helper: Safely track custom Amplitude events
     window.trackAmplitudeEvent = function (eventName, eventProperties = {}) {
@@ -20,11 +43,14 @@
             page_title: document.title,
             page_url: window.location.href,
             page_path: window.location.pathname,
+            referrer: document.referrer || 'direct',
+            device_type: getDeviceType(),
             timestamp: new Date().toISOString()
-        }, eventProperties);
+        }, getUtmParameters(), eventProperties);
 
         if (window.amplitude && typeof window.amplitude.track === 'function' && window.amplitudeInitialized) {
             window.amplitude.track(eventName, enrichedProps);
+            console.log(`[Amplitude Tracked] ${eventName}:`, enrichedProps);
         } else {
             window.amplitudeQueue.push({ eventName, eventProperties: enrichedProps });
         }
@@ -32,7 +58,7 @@
 
     // Helper: Identify user and set user traits
     window.identifyAmplitudeUser = function (userId, userProperties = {}) {
-        if (window.amplitude && typeof window.amplitude.setUserId === 'function') {
+        if (window.amplitude && typeof window.amplitude.setUserId === 'function' && window.amplitudeInitialized) {
             if (userId) {
                 window.amplitude.setUserId(String(userId));
             }
@@ -45,8 +71,21 @@
                 }
                 window.amplitude.identify(identify);
             }
+            console.log(`[Amplitude Identified] User: ${userId}`, userProperties);
+        } else {
+            window.amplitudeIdentifyQueue.push({ userId, userProperties });
         }
     };
+
+    let pageViewFired = false;
+    function firePageViewOnce() {
+        if (pageViewFired) return;
+        pageViewFired = true;
+        window.trackAmplitudeEvent('Page Viewed', {
+            page_title: document.title,
+            page_path: window.location.pathname
+        });
+    }
 
     // Load Amplitude Browser SDK v2 via CDN
     const sdkScript = document.createElement('script');
@@ -66,15 +105,26 @@
                 minIdLength: 1
             });
             window.amplitudeInitialized = true;
-            console.log('[Amplitude] Initialized successfully. Tracking sessions, page views, and interactions.');
+            console.log('[Amplitude] Initialized successfully. Tracking sessions, page views, and full funnel.');
 
-            // Flush any queued events
+            // Flush queued identify calls
+            if (window.amplitudeIdentifyQueue && window.amplitudeIdentifyQueue.length > 0) {
+                window.amplitudeIdentifyQueue.forEach(item => {
+                    window.identifyAmplitudeUser(item.userId, item.userProperties);
+                });
+                window.amplitudeIdentifyQueue = [];
+            }
+
+            // Flush queued events
             if (window.amplitudeQueue && window.amplitudeQueue.length > 0) {
                 window.amplitudeQueue.forEach(item => {
                     window.amplitude.track(item.eventName, item.eventProperties);
                 });
                 window.amplitudeQueue = [];
             }
+
+            // Track standard explicit Page Viewed for Funnel Step 1
+            firePageViewOnce();
         }
     };
 
@@ -84,13 +134,20 @@
 
     document.head.appendChild(sdkScript);
 
+    // Also ensure Page Viewed is registered in queue if script hasn't loaded yet
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', firePageViewOnce);
+    } else {
+        firePageViewOnce();
+    }
+
     // -------------------------------------------------------------
     // E-Commerce Outbound Platform Click Integration
     // Hooks seamlessly with existing window.trackPlatformClick
     // -------------------------------------------------------------
     const previousTrackPlatformClick = window.trackPlatformClick;
 
-    window.trackPlatformClick = function (platformName, productName, productId) {
+    window.trackPlatformClick = function (platformName, productName, productId, extraProps = {}) {
         // Call previous handler (GA4)
         if (typeof previousTrackPlatformClick === 'function') {
             try {
@@ -100,11 +157,14 @@
             }
         }
 
-        // Track into Amplitude
-        window.trackAmplitudeEvent('Ecommerce Platform Clicked', {
+        const platformProps = Object.assign({
             platform: platformName,
             product_name: productName || 'unknown',
-            product_id: productId || 'unknown'
-        });
+            product_id: productId || 'unknown',
+            destination_type: platformName === 'Nyara Luxe Direct' ? 'internal_checkout' : 'external_marketplace'
+        }, extraProps);
+
+        // Track standard Ecommerce Platform Clicked for Funnel Step 4
+        window.trackAmplitudeEvent('Ecommerce Platform Clicked', platformProps);
     };
 })();

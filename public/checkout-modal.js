@@ -95,7 +95,7 @@
 
 let currentCheckoutProduct = null;
 
-function openCheckoutModal(productName, price, productId) {
+function openCheckoutModal(productName, price, productId, category = 'Uncategorized') {
     const mrpPrice = Math.round((parseFloat(price) || 0) * 1.30); // 30% increased MRP
     const discountedPrice = Math.round(mrpPrice * 0.80); // 20% OFF
     const discountAmt = mrpPrice - discountedPrice;
@@ -104,7 +104,8 @@ function openCheckoutModal(productName, price, productId) {
         name: productName,
         mrp: mrpPrice,
         price: discountedPrice,
-        productId: productId
+        productId: productId || 'unknown',
+        category: category || 'Uncategorized'
     };
 
     document.getElementById('summary-product-name').textContent = productName;
@@ -120,8 +121,10 @@ function openCheckoutModal(productName, price, productId) {
         window.trackAmplitudeEvent('Checkout Modal Opened', {
             product_name: productName,
             product_id: productId || 'unknown',
+            category: category || 'Uncategorized',
             mrp: mrpPrice,
-            discounted_price: discountedPrice
+            discounted_price: discountedPrice,
+            discount_amount: discountAmt
         });
     }
 }
@@ -183,15 +186,23 @@ function handleCheckoutSubmit(event) {
             name: name,
             email: email,
             phone: phone,
-            pincode: pincode
+            pincode: pincode,
+            last_product: currentCheckoutProduct ? currentCheckoutProduct.name : ''
         });
     }
 
     if (window.trackAmplitudeEvent) {
         window.trackAmplitudeEvent('Checkout Form Submitted', {
             product_name: currentCheckoutProduct ? currentCheckoutProduct.name : 'Product',
+            product_id: currentCheckoutProduct ? currentCheckoutProduct.productId : 'unknown',
+            category: currentCheckoutProduct ? currentCheckoutProduct.category : 'Uncategorized',
             amount: currentCheckoutProduct ? currentCheckoutProduct.price : 0,
-            pincode: pincode
+            mrp: currentCheckoutProduct ? currentCheckoutProduct.mrp : 0,
+            customer_name: name,
+            customer_phone: phone,
+            customer_email: email,
+            customer_pincode: pincode,
+            has_location_link: Boolean(location)
         });
     }
 
@@ -204,7 +215,8 @@ function handleCheckoutSubmit(event) {
             currentCheckoutProduct ? currentCheckoutProduct.name : 'Product',
             currentCheckoutProduct ? currentCheckoutProduct.mrp : 0,
             currentCheckoutProduct ? currentCheckoutProduct.productId : '',
-            customerDetails
+            customerDetails,
+            currentCheckoutProduct ? currentCheckoutProduct.category : 'Uncategorized'
         );
     } else {
         alert('Razorpay payment gateway loading... Please try again.');
