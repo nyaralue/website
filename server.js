@@ -685,61 +685,92 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Function to send email notification for orders and inquiries to info@nyaraluxe.in (Triggering Vercel Redeploy)
+// Function to send email notification for orders and inquiries to ujjwaljaini978@gmail.com (Runs 24/7 on Vercel Cloud)
 async function sendNotificationEmail(orderData) {
+  const recipientEmail = 'ujjwaljaini978@gmail.com';
+
+  // 1. Direct Cloud Delivery to ujjwaljaini978@gmail.com (Works 24/7 even if PC is off, zero passwords needed)
+  try {
+    const formSubmitPayload = {
+      _subject: `🛒 New Order Received: ${orderData.productName || 'Nyara Luxe Product'} - ${orderData.name || 'Customer'}`,
+      _template: 'table',
+      _captcha: 'false',
+      _cc: 'info@nyaraluxe.in',
+      'Order Status': orderData.query || 'ORDER RECEIVED',
+      'Product Name': orderData.productName || 'N/A',
+      'Product SKU / ID': orderData.productSku || 'N/A',
+      'Customer Name': orderData.name || 'N/A',
+      'Phone Number': orderData.phone || 'N/A',
+      'Email Address': orderData.email || 'N/A',
+      'Delivery Address': orderData.address || 'N/A',
+      'Pincode': orderData.pincode || 'N/A',
+      'Location Link': orderData.locationLink || 'Not provided',
+      'Date & Time': orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    };
+
+    await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Nyara-Luxe-Serverless',
+        'Referer': 'https://website-ppur.vercel.app/',
+        'Origin': 'https://website-ppur.vercel.app'
+      },
+      body: JSON.stringify(formSubmitPayload)
+    });
+    console.log(`[Email Notification] Order email delivered to ${recipientEmail}`);
+  } catch (fsErr) {
+    console.error('FormSubmit delivery error:', fsErr.message);
+  }
+
+  // 2. SMTP Delivery (if SMTP credentials exist in environment)
   try {
     const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
     const smtpPort = parseInt(process.env.SMTP_PORT || '465');
-    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'info@nyaraluxe.in';
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
     const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
-    if (!smtpUser || !smtpPass) {
-      console.log('[Hostinger SMTP Notification Log] Form submitted for info@nyaraluxe.in:', JSON.stringify(orderData, null, 2));
-      return;
+    if (smtpUser && smtpPass) {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: true,
+        auth: { user: smtpUser, pass: smtpPass }
+      });
+
+      const mailOptions = {
+        from: `"Nyara Luxe Orders" <${smtpUser}>`,
+        to: `${recipientEmail}, info@nyaraluxe.in`,
+        subject: `🛒 New Nyara Luxe Order / Form: ${orderData.productName || 'Customer Submission'}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #2C3E2E; border-radius: 10px; background: #F8F9F8;">
+            <h2 style="color: #2C3E2E; border-bottom: 2px solid #D4AF37; padding-bottom: 8px;">🛍️ New Order / Submission Received</h2>
+            <p style="font-size: 1.05rem;"><strong>Product Name:</strong> ${orderData.productName || 'N/A'}</p>
+            <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD; margin: 15px 0;">
+              <h3 style="color: #2C3E2E; margin-top: 0;">👤 Customer Information:</h3>
+              <p><strong>Full Name:</strong> ${orderData.name || 'N/A'}</p>
+              <p><strong>Mobile Number:</strong> <a href="tel:${orderData.phone}">${orderData.phone || 'N/A'}</a></p>
+              <p><strong>Email Address:</strong> ${orderData.email || 'Not provided'}</p>
+              <p><strong>Delivery Address:</strong> ${orderData.address || 'N/A'}</p>
+              <p><strong>Pincode:</strong> ${orderData.pincode || 'N/A'}</p>
+              <p><strong>Location Link:</strong> ${orderData.locationLink ? `<a href="${orderData.locationLink}" target="_blank">${orderData.locationLink}</a>` : 'Not provided'}</p>
+            </div>
+            <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD;">
+              <h3 style="color: #2C3E2E; margin-top: 0;">💳 Payment & Order Details:</h3>
+              <p><strong>Status / Details:</strong> ${orderData.query || 'Order Form Submitted'}</p>
+              <p><strong>Timestamp:</strong> ${orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+            </div>
+            <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System</p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`[SMTP Notification] Order email delivered via SMTP to ${recipientEmail}`);
     }
-
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: true, // SSL for port 465 (Hostinger standard)
-      auth: { user: smtpUser, pass: smtpPass }
-    });
-
-    const mailOptions = {
-      from: `"Nyara Luxe Orders" <${smtpUser}>`,
-      to: 'info@nyaraluxe.in',
-      subject: `🛒 New Nyara Luxe Order / Form: ${orderData.productName || 'Customer Submission'}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #2C3E2E; border-radius: 10px; background: #F8F9F8;">
-          <h2 style="color: #2C3E2E; border-bottom: 2px solid #D4AF37; padding-bottom: 8px;">🛍️ New Order / Submission Received</h2>
-          
-          <p style="font-size: 1.05rem;"><strong>Product Name:</strong> ${orderData.productName || 'N/A'}</p>
-          
-          <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD; margin: 15px 0;">
-            <h3 style="color: #2C3E2E; margin-top: 0;">👤 Customer Information:</h3>
-            <p><strong>Full Name:</strong> ${orderData.name || 'N/A'}</p>
-            <p><strong>Mobile Number:</strong> <a href="tel:${orderData.phone}">${orderData.phone || 'N/A'}</a></p>
-            <p><strong>Email Address:</strong> ${orderData.email || 'Not provided'}</p>
-            <p><strong>Delivery Address:</strong> ${orderData.address || 'N/A'}</p>
-            <p><strong>Pincode:</strong> ${orderData.pincode || 'N/A'}</p>
-            <p><strong>Location Link:</strong> ${orderData.locationLink ? `<a href="${orderData.locationLink}" target="_blank">${orderData.locationLink}</a>` : 'Not provided'}</p>
-          </div>
-
-          <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD;">
-            <h3 style="color: #2C3E2E; margin-top: 0;">💳 Payment & Order Details:</h3>
-            <p><strong>Status / Details:</strong> ${orderData.query || 'Order Form Submitted'}</p>
-            <p><strong>Timestamp:</strong> ${orderData.timestamp || new Date().toLocaleString()}</p>
-          </div>
-
-          <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Successfully sent order email notification to info@nyaraluxe.in');
   } catch (err) {
-    console.error('Failed to send notification email:', err.message);
+    console.error('Failed to send SMTP notification email:', err.message);
   }
 }
 

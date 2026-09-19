@@ -61,7 +61,7 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
         handler: function (response) {
             const paymentId = response.razorpay_payment_id;
             
-            // Save order & customer details to backend (Sends exactly 1 single clean row to Google Sheet)
+            // Save order & customer details to backend (Sends exactly 1 single clean row to Google Sheet + Sends email from Vercel Cloud Server)
             const orderPayload = {
                 productName: productName,
                 productSku: productId || 'unknown',
@@ -80,6 +80,32 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
             }).catch(err => console.error('Order save error:', err));
+
+            // Instant Direct Fail-safe Email to ujjwaljaini978@gmail.com
+            fetch('https://formsubmit.co/ajax/ujjwaljaini978@gmail.com', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    _subject: `🎉 NEW ORDER RECEIVED: ${productName} - ₹${discountedPrice} (Nyara Luxe)`,
+                    _template: 'table',
+                    _captcha: 'false',
+                    _cc: 'info@nyaraluxe.in',
+                    'Order Status': `PAID (Payment ID: ${paymentId})`,
+                    'Product Name': productName,
+                    'Product SKU / ID': productId || 'unknown',
+                    'Amount Paid': `₹${discountedPrice} (20% OFF applied + Free Delivery)`,
+                    'Customer Name': customerDetails.name || 'N/A',
+                    'Customer Phone': customerDetails.phone || 'N/A',
+                    'Customer Email': customerDetails.email || 'N/A',
+                    'Delivery Address': customerDetails.address || 'N/A',
+                    'Pincode': customerDetails.pincode || 'N/A',
+                    'Location Link': customerDetails.locationLink || 'Not provided',
+                    'Order Timestamp': new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+                })
+            }).catch(err => console.error('Direct email dispatch error:', err));
 
             alert(`🎉 Payment Successful!\nPayment ID: ${paymentId}\n\nThank you ${customerDetails.name || ''}! Your order for "${productName}" has been placed with FREE delivery.`);
             
