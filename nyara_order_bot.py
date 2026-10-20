@@ -209,7 +209,8 @@ def check_and_process_orders(max_emails=10):
                 mail.store(mid, '+FLAGS', '\\Seen')
 
             except Exception as parse_err:
-                log(f"Error parsing email ID {mid.decode()}: {parse_err}")
+                mid_str = mid.decode() if isinstance(mid, bytes) else str(mid)
+                log(f"Error parsing email ID {mid_str}: {parse_err}")
 
         mail.logout()
 
