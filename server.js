@@ -1155,7 +1155,7 @@ app.get('/api/orders', verifyToken, async (req, res) => {
 // -----------------------------------------------------------------------------
 // Google Sheet Pending Orders Sync API (Auto-fetched by Sheet on 1-Min Trigger)
 // -----------------------------------------------------------------------------
-app.get('/api/orders/pending-sync', async (req, res) => {
+app.get('/api/pending-orders-sync', async (req, res) => {
   try {
     await connectDB();
     const token = req.query.token;
@@ -1170,7 +1170,7 @@ app.get('/api/orders/pending-sync', async (req, res) => {
   }
 });
 
-app.post('/api/orders/mark-synced', async (req, res) => {
+app.post('/api/mark-orders-synced', async (req, res) => {
   try {
     await connectDB();
     const { token, orderIds } = req.body;
