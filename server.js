@@ -1360,6 +1360,57 @@ app.post('/api/mark-orders-synced', async (req, res) => {
     const { token, orderIds } = req.body;
     if (token !== 'NyaraLuxeSync2026') {
       return res.status(401).json({ error: 'Unauthorized sync token' });
+
+// -----------------------------------------------------------------------------
+// Orders by Date Range Endpoint (For Date-Range Google Sheet Sync & Deduplication)
+// -----------------------------------------------------------------------------
+app.get('/api/orders-by-date-range', async (req, res) => {
+  try {
+    await connectDB();
+    const token = req.query.token;
+    if (token !== 'NyaraLuxeSync2026') {
+      return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    const { startDate, endDate } = req.query;
+    let query = {
+      paymentStatus: { $ne: 'CANCELLED' },
+      orderId: { $not: /^AMAZON-\d+$/ } // strictly omit synthetic test orders
+    };
+
+    if (startDate && endDate) {
+      if (startDate === endDate) {
+        query.orderDate = startDate;
+      } else {
+        query.orderDate = { $gte: startDate, $lte: endDate };
+      }
+    } else if (startDate) {
+      query.orderDate = startDate;
+    }
+
+    const orders = await Order.find(query).sort({ orderDate: 1, createdAt: 1 }).limit(300);
+    res.json({
+      success: true,
+      count: orders.length,
+      orders: orders.map(o => ({
+        orderId: o.orderId,
+        platform: o.platform || 'website',
+        productSku: o.productSku || o.sku,
+        productName: o.productName,
+        quantity: o.quantity || 1,
+        amount: o.amount || 0,
+        packetId: o.packetId || '',
+        orderDate: o.orderDate,
+        customerName: o.customerName || '',
+        sheetSyncStatus: o.sheetSyncStatus
+      }))
+    });
+  } catch (err) {
+    console.error('Error in orders-by-date-range:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
     }
     if (Array.isArray(orderIds) && orderIds.length > 0) {
       await Order.updateMany(
