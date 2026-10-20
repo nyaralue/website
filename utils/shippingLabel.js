@@ -1,7 +1,140 @@
 /**
- * Shipping Label & Email Template Generator for Nyara Luxe
- * Generates standard 4x6 / A6 e-commerce compliant shipping dispatch slips.
+ * Shipping Label & Marketplace Notification Engine for Nyara Luxe
+ * Handles 4x6 / A6 courier shipping labels, marketplace emails with product photos,
+ * and one-click 'Accept Order' / 'Accept & Generate Label' action triggers.
  */
+
+function generateMarketplaceOrderEmail(order, baseUrl = 'https://website-ppur.vercel.app') {
+  const orderId = order.orderId || 'NL-ORD-0000';
+  const platform = String(order.platform || 'website').toUpperCase();
+  const sku = order.productSku || order.sku || 'N/A';
+  const productName = order.productName || 'Nyara Luxe Home Decor Fixture';
+  const imageUrl = order.imageUrl || 'https://res.cloudinary.com/dgn1wdfdw/image/upload/v1775405892/nyara-luxe-uploads/mphweysnpgmavfe4rlvi.png';
+  const qty = Number(order.quantity || order.qty) || 1;
+  const amount = order.amount || 0;
+  const customerName = order.customerName || order.name || 'Valued Customer';
+  const phone = order.customerPhone || order.phone || 'N/A';
+  const address = order.deliveryAddress || order.address || 'N/A';
+  const pincode = order.pincode || 'N/A';
+  const dateStr = order.orderDate || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const platColors = {
+    'FLIPKART': { bg: '#2874F0', text: '#FFFFFF', badge: '🛒 FLIPKART ORDER' },
+    'MEESHO': { bg: '#9C27B0', text: '#FFFFFF', badge: '🛍️ MEESHO ORDER' },
+    'AMAZON': { bg: '#FF9900', text: '#000000', badge: '📦 AMAZON ORDER' },
+    'WEBSITE': { bg: '#2C3E2E', text: '#D4AF37', badge: '🌐 WEBSITE ORDER' }
+  };
+  const cfg = platColors[platform] || platColors['WEBSITE'];
+
+  const acceptUrl = `${baseUrl}/api/orders/action?orderId=${encodeURIComponent(orderId)}&action=accept`;
+  const labelUrl = `${baseUrl}/api/orders/action?orderId=${encodeURIComponent(orderId)}&action=accept_label`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>New Order - ${orderId}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e4e8;">
+    
+    <!-- Top Platform Header -->
+    <div style="background: ${cfg.bg}; color: ${cfg.text}; padding: 18px 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td>
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; display: inline-block;">
+              ${cfg.badge}
+            </span>
+            <h2 style="margin: 8px 0 0; font-size: 20px; font-weight: 800;">New Order Received!</h2>
+          </td>
+          <td style="text-align: right; vertical-align: top;">
+            <span style="font-size: 12px; opacity: 0.9;">Order ID</span>
+            <div style="font-size: 14px; font-weight: 900; letter-spacing: 0.5px;">${orderId}</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Product Visual Showcase (Photo + SKU) -->
+    <div style="padding: 24px; border-bottom: 1px solid #edf0f2;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <!-- Product Photo -->
+          <td style="width: 130px; vertical-align: top; padding-right: 18px;">
+            <div style="width: 130px; height: 130px; border-radius: 10px; overflow: hidden; border: 1px solid #e1e4e8; background: #fafafa;">
+              <img src="${imageUrl}" alt="${sku}" style="width: 130px; height: 130px; object-fit: cover; display: block;">
+            </div>
+          </td>
+          <!-- Product Info -->
+          <td style="vertical-align: top;">
+            <div style="margin-bottom: 6px;">
+              <span style="background: #eef5ee; color: #2C3E2E; border: 1.5px solid #2C3E2E; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 15px; display: inline-block;">
+                SKU: ${sku}
+              </span>
+            </div>
+            <h3 style="margin: 6px 0 8px; font-size: 15px; color: #1a1a1a; line-height: 1.4; font-weight: 700;">
+              ${productName}
+            </h3>
+            <div style="font-size: 14px; color: #555;">
+              <strong>Quantity:</strong> <span style="font-weight: 800; color: #000;">${qty} Pc</span> &nbsp;|&nbsp; 
+              <strong>Amount:</strong> <span style="font-weight: 900; color: #155724; font-size: 16px;">₹${amount}</span>
+            </div>
+            <div style="margin-top: 6px; font-size: 12px; color: #777;">
+              <strong>Date:</strong> ${dateStr} &nbsp;|&nbsp; <strong>Sync Status:</strong> <span style="color: #28a745; font-weight: bold;">✓ Added to Sale Sheet (automated)</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Customer Delivery Details -->
+    <div style="padding: 20px 24px; background: #fafbfc; border-bottom: 1px solid #edf0f2;">
+      <h4 style="margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #666;">
+        📍 Delivery Destination Details
+      </h4>
+      <div style="font-size: 14px; line-height: 1.5; color: #222;">
+        <strong>Customer:</strong> ${customerName}<br>
+        <strong>Phone:</strong> <a href="tel:${phone}" style="color: #2C3E2E; font-weight: bold; text-decoration: none;">${phone}</a><br>
+        <strong>Address:</strong> ${address}<br>
+        <strong>Pincode:</strong> <span style="font-weight: 900; font-size: 15px; background: #fff; border: 1px solid #ddd; padding: 2px 8px; border-radius: 4px;">${pincode}</span>
+      </div>
+    </div>
+
+    <!-- Interactive Action Buttons -->
+    <div style="padding: 24px; text-align: center; background: #ffffff;">
+      <div style="font-size: 13px; font-weight: 600; color: #555; margin-bottom: 16px;">
+        👇 Click an action below to process this order instantly:
+      </div>
+      <table style="width: 100%; border-collapse: separate; border-spacing: 12px 0;">
+        <tr>
+          <!-- Button 1: Accept Order -->
+          <td style="width: 50%;">
+            <a href="${acceptUrl}" target="_blank" style="display: block; background: #f0f4f0; color: #2C3E2E; border: 2px solid #2C3E2E; padding: 14px 10px; text-align: center; border-radius: 8px; font-weight: 800; font-size: 14px; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              ✅ Accept Order
+            </a>
+          </td>
+          <!-- Button 2: Accept & Generate Shipping Label -->
+          <td style="width: 50%;">
+            <a href="${labelUrl}" target="_blank" style="display: block; background: #2C3E2E; color: #ffffff; border: 2px solid #2C3E2E; padding: 14px 10px; text-align: center; border-radius: 8px; font-weight: 800; font-size: 14px; text-decoration: none; box-shadow: 0 4px 12px rgba(44,62,46,0.3);">
+              🏷️ Accept & Generate Label
+            </a>
+          </td>
+        </tr>
+      </table>
+      <div style="margin-top: 14px; font-size: 11px; color: #888;">
+        Clicking <strong>'Accept & Generate Label'</strong> will mark the order accepted, create the 4x6 courier shipping slip, and email it back to you instantly.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background: #2C3E2E; padding: 14px; text-align: center; color: #D4AF37; font-size: 11px;">
+      Nyara Luxe Order Automation Engine | Sheet: Buy and Sell (sale tab)
+    </div>
+  </div>
+</body>
+</html>`;
+}
 
 function generateShippingLabelHtml(order, isEmail = false) {
   const orderId = order.orderId || 'NL-ORD-0000';
@@ -15,7 +148,6 @@ function generateShippingLabelHtml(order, isEmail = false) {
   const amount = order.amount || order.price || 0;
   const paymentStatus = order.paymentStatus || (order.paymentId ? 'PREPAID' : 'COD');
   const orderDate = order.orderDate || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const labelUrl = order.shippingLabelUrl || `/api/orders/${orderId}/label`;
 
   const qrData = `${orderId}|${pincode}|${productSku}`;
   const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&size=130&margin=1`;
@@ -313,5 +445,6 @@ function generateOrderConfirmationEmail(order) {
 
 module.exports = {
   generateShippingLabelHtml,
+  generateMarketplaceOrderEmail,
   generateOrderConfirmationEmail
 };
