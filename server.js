@@ -23,7 +23,7 @@ const SKU = require('./models/SKU');
 const Category = require('./models/Category');
 const ChatSession = require('./models/ChatSession');
 const Order = require('./models/Order');
-const { generateShippingLabelHtml, generateMarketplaceOrderEmail, generateOrderConfirmationEmail } = require('./utils/shippingLabel');
+const { generateShippingLabelHtml, generateMarketplaceOrderEmail, generateOrderConfirmationEmail, generateBatchShippingLabelsHtml, generateBatchOrderEmail } = require('./utils/shippingLabel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1155,6 +1155,190 @@ app.get('/api/orders', verifyToken, async (req, res) => {
 // -----------------------------------------------------------------------------
 // Google Sheet Pending Orders Sync API (Auto-fetched by Sheet on 1-Min Trigger)
 // -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// Orders Summary Endpoint (For Google Sheet Popup Dialog & Monitoring)
+// -----------------------------------------------------------------------------
+app.get('/api/orders/summary', async (req, res) => {
+  try {
+    await connectDB();
+    const todayIso = new Date().toISOString().split('T')[0];
+    
+    const pendingOrders = await Order.find({
+      paymentStatus: { $ne: 'CANCELLED' }
+    }).sort({ createdAt: -1 }).limit(30);
+
+    const pendingCount = pendingOrders.filter(o => o.sheetSyncStatus !== 'SYNCED').length;
+    const todayCount = pendingOrders.filter(o => o.orderDate === todayIso).length;
+
+    res.json({
+      success: true,
+      totalOrders: pendingOrders.length,
+      pendingSyncCount: pendingCount,
+      todayCount: todayCount,
+      orders: pendingOrders.map(o => ({
+        orderId: o.orderId,
+        platform: o.platform || 'website',
+        productSku: o.productSku,
+        productName: o.productName,
+        imageUrl: o.imageUrl,
+        quantity: o.quantity || 1,
+        amount: o.amount || 0,
+        customerName: o.customerName || 'Valued Customer',
+        customerPhone: o.customerPhone || '',
+        deliveryAddress: o.deliveryAddress || '',
+        pincode: o.pincode || '',
+        orderDate: o.orderDate,
+        paymentStatus: o.paymentStatus,
+        sheetSyncStatus: o.sheetSyncStatus,
+        shippingLabelUrl: o.shippingLabelUrl || `https://website-ppur.vercel.app/api/orders/${o.orderId}/label`
+      }))
+    });
+  } catch (err) {
+    console.error('Error getting orders summary:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Batch Accept & Send All Shipping Labels to Email
+// -----------------------------------------------------------------------------
+app.post('/api/orders/batch-accept-labels', async (req, res) => {
+  try {
+    await connectDB();
+    const { orderIds } = req.body;
+
+    let filter = {
+      paymentStatus: { $in: ['NEW', 'PAID', 'PENDING', 'ACCEPTED'] }
+    };
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      filter = { orderId: { $in: orderIds } };
+    }
+
+    const ordersToProcess = await Order.find(filter).sort({ createdAt: -1 }).limit(25);
+
+    if (ordersToProcess.length === 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        message: 'No pending orders found to process.'
+      });
+    }
+
+    // Mark all as ACCEPTED_AND_LABELED
+    const ids = ordersToProcess.map(o => o.orderId);
+    await Order.updateMany(
+      { orderId: { $in: ids } },
+      { $set: { paymentStatus: 'ACCEPTED_AND_LABELED' } }
+    );
+
+    const baseUrl = 'https://website-ppur.vercel.app';
+    const batchHtml = generateBatchOrderEmail(ordersToProcess, baseUrl);
+
+    // Send Consolidated Dispatch Email with all Labels via SMTP
+    try {
+      const smtpUser = process.env.SMTP_USER || 'info@nyaraluxe.in';
+      const smtpPass = process.env.SMTP_PASS || 'NyaraLuxe@978';
+      const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+      const smtpPort = parseInt(process.env.SMTP_PORT) || 465;
+
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: true,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        }
+      });
+
+      const mailOptions = {
+        from: `"Nyara Luxe Fulfillment" <${smtpUser}>`,
+        to: 'ujjwaljaini978@gmail.com',
+        cc: 'info@nyaraluxe.in',
+        subject: `🏷️ [BATCH DISPATCH] ${ordersToProcess.length} Shipping Labels Generated & Ready to Print`,
+        html: batchHtml
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`[Batch Notification] All ${ordersToProcess.length} labels emailed to ujjwaljaini978@gmail.com`);
+    } catch (mailErr) {
+      console.error('Batch email delivery error:', mailErr.message);
+    }
+
+    res.json({
+      success: true,
+      count: ordersToProcess.length,
+      message: `Successfully accepted ${ordersToProcess.length} orders and dispatched all shipping labels to your email!`,
+      batchLabelViewUrl: `${baseUrl}/api/orders/batch-labels-view`,
+      processedOrderIds: ids
+    });
+  } catch (err) {
+    console.error('Error in batch accept labels:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Multi-Page Printable Batch Shipping Labels View (Print All in 1-Click)
+// -----------------------------------------------------------------------------
+app.get('/api/orders/batch-labels-view', async (req, res) => {
+  try {
+    await connectDB();
+    const orders = await Order.find({
+      paymentStatus: { $ne: 'CANCELLED' }
+    }).sort({ createdAt: -1 }).limit(25);
+
+    const html = generateBatchShippingLabelsHtml(orders, false);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    console.error('Error generating batch labels view:', err);
+    res.status(500).send('Error generating batch labels view');
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Pending Returns Sync Endpoint for Google Sheet 'return' Tab
+// -----------------------------------------------------------------------------
+app.get('/api/pending-returns-sync', async (req, res) => {
+  try {
+    await connectDB();
+    const token = req.query.token;
+    if (token !== 'NyaraLuxeSync2026') {
+      return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    const returns = await Order.find({
+      orderType: 'return',
+      sheetSyncStatus: { $ne: 'SYNCED' }
+    }).limit(50);
+    res.json(returns);
+  } catch (err) {
+    console.error('Error fetching pending returns:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/mark-returns-synced', async (req, res) => {
+  try {
+    await connectDB();
+    const { token, orderIds } = req.body;
+    if (token !== 'NyaraLuxeSync2026') {
+      return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      await Order.updateMany(
+        { orderId: { $in: orderIds }, orderType: 'return' },
+        { $set: { sheetSyncStatus: 'SYNCED' } }
+      );
+    }
+    res.json({ success: true, count: orderIds ? orderIds.length : 0 });
+  } catch (err) {
+    console.error('Error marking returns synced:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/pending-orders-sync', async (req, res) => {
   try {
     await connectDB();
