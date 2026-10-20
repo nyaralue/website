@@ -443,7 +443,156 @@ function generateOrderConfirmationEmail(order) {
   `;
 }
 
+
+function generateBatchShippingLabelsHtml(orders, isEmail = false) {
+  if (!Array.isArray(orders) || orders.length === 0) {
+    return '<html><body><h2 style="text-align:center;font-family:sans-serif;margin-top:50px;">No orders available for shipping label generation.</h2></body></html>';
+  }
+
+  const labelPages = orders.map((ord, idx) => {
+    return `
+      <div class="label-container-wrapper" style="page-break-after: always; margin-bottom: 30px;">
+        ${generateShippingLabelHtml(ord, true)}
+      </div>
+    `;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Batch Shipping Labels - ${orders.length} Orders - Nyara Luxe</title>
+  <style>
+    @page {
+      size: 4in 6in;
+      margin: 0;
+    }
+    @media print {
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .label-container-wrapper {
+        page-break-after: always !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+      }
+    }
+    body {
+      background: #eef2f5;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  ${!isEmail ? `
+    <div class="no-print" style="text-align: center; margin-bottom: 25px; background: #fff; padding: 15px 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <h2 style="margin: 0 0 10px; color: #2C3E2E;">📦 Batch Shipping Labels (${orders.length} Packages)</h2>
+      <button onclick="window.print()" style="background: #2C3E2E; color: #FFF; border: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer;">
+        🖨️ Print All Shipping Labels
+      </button>
+      <span style="display: block; margin-top: 6px; font-size: 12px; color: #666;">Tip: Set printer paper size to 4x6 inch (or A6) & margins to 'None'.</span>
+    </div>
+  ` : ''}
+
+  ${labelPages}
+</body>
+</html>`;
+}
+
+function generateBatchOrderEmail(orders, baseUrl = 'https://website-ppur.vercel.app') {
+  const count = orders.length;
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const batchLabelUrl = `${baseUrl}/api/orders/batch-labels-view`;
+
+  const rows = orders.map((ord, idx) => {
+    const plat = (ord.platform || 'WEBSITE').toUpperCase();
+    const platColor = plat === 'FLIPKART' ? '#2874F0' : (plat === 'MEESHO' ? '#9C27B0' : '#FF9900');
+    const img = ord.imageUrl || 'https://res.cloudinary.com/dgn1wdfdw/image/upload/v1775405892/nyara-luxe-uploads/mphweysnpgmavfe4rlvi.png';
+    return `
+      <tr style="border-bottom: 1px solid #e0e0e0;">
+        <td style="padding: 12px 8px; text-align: center;">
+          <img src="${img}" alt="${ord.productSku}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
+        </td>
+        <td style="padding: 12px 8px;">
+          <span style="background: ${platColor}; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px;">${plat}</span><br>
+          <strong style="color: #2C3E2E; font-size: 13px;">${ord.productSku}</strong><br>
+          <span style="color: #666; font-size: 11px;">${ord.productName || 'Fixture'}</span>
+        </td>
+        <td style="padding: 12px 8px; font-size: 12px; color: #333;">
+          <strong>${ord.orderId}</strong><br>
+          Qty: ${ord.quantity || 1} | ₹${ord.amount || 0}
+        </td>
+        <td style="padding: 12px 8px; font-size: 11px; color: #555;">
+          <strong>${ord.customerName || 'Valued Customer'}</strong><br>
+          ${ord.deliveryAddress || ''} (${ord.pincode || ''})
+        </td>
+        <td style="padding: 12px 8px; text-align: center;">
+          <a href="${baseUrl}/api/orders/${ord.orderId}/label" style="display: inline-block; background: #2C3E2E; color: #fff; text-decoration: none; font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 4px;">🏷️ Label</a>
+        </td>
+      </tr>
+    `;
+  }).join('\n');
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 750px; margin: 0 auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+      <div style="background: #2C3E2E; color: #D4AF37; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px; font-weight: bold; letter-spacing: 2px;">NYARA LUXE</h1>
+        <p style="margin: 4px 0 0; color: #ffffff; font-size: 13px;">Daily Automated Dispatch Pack &bull; ${todayStr}</p>
+      </div>
+
+      <div style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f8faf8; padding: 15px; border-radius: 6px; border: 1px solid #e0e8e0;">
+          <div>
+            <h3 style="margin: 0; color: #2C3E2E; font-size: 18px;">📦 ${count} Orders Accepted & Processed</h3>
+            <p style="margin: 4px 0 0; color: #666; font-size: 13px;">All shipping labels have been compiled and generated.</p>
+          </div>
+          <div>
+            <a href="${batchLabelUrl}" style="background: #D4AF37; color: #2C3E2E; text-decoration: none; font-weight: bold; padding: 10px 18px; border-radius: 6px; font-size: 14px; display: inline-block;">🖨️ Print All Labels</a>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+          <thead>
+            <tr style="background: #f1f4f1; color: #2C3E2E; font-size: 12px; text-transform: uppercase;">
+              <th style="padding: 10px 8px; text-align: center;">Photo</th>
+              <th style="padding: 10px 8px; text-align: left;">Product & SKU</th>
+              <th style="padding: 10px 8px; text-align: left;">Order Details</th>
+              <th style="padding: 10px 8px; text-align: left;">Customer Address</th>
+              <th style="padding: 10px 8px; text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 30px; text-align: center;">
+          <a href="${batchLabelUrl}" style="background: #2C3E2E; color: #fff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; font-size: 16px; display: inline-block;">
+            🖨️ Open All ${count} Printable Shipping Labels (4x6 / A4)
+          </a>
+        </div>
+      </div>
+
+      <div style="background: #f4f4f4; padding: 12px; text-align: center; color: #777; font-size: 12px;">
+        &copy; ${new Date().getFullYear()} Nyara Luxe Order Automation Engine.
+      </div>
+    </div>
+  `;
+}
+
 module.exports = {
+  generateBatchShippingLabelsHtml,
+  generateBatchOrderEmail,
   generateShippingLabelHtml,
   generateMarketplaceOrderEmail,
   generateOrderConfirmationEmail
