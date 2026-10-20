@@ -1159,7 +1159,7 @@ app.get('/api/orders', verifyToken, async (req, res) => {
 // -----------------------------------------------------------------------------
 // Orders Summary Endpoint (For Google Sheet Popup Dialog & Monitoring)
 // -----------------------------------------------------------------------------
-app.get('/api/orders/summary', async (req, res) => {
+app.get('/api/orders-summary', async (req, res) => {
   try {
     await connectDB();
     const todayIso = new Date().toISOString().split('T')[0];
@@ -1203,7 +1203,7 @@ app.get('/api/orders/summary', async (req, res) => {
 // -----------------------------------------------------------------------------
 // Batch Accept & Send All Shipping Labels to Email
 // -----------------------------------------------------------------------------
-app.post('/api/orders/batch-accept-labels', async (req, res) => {
+app.post('/api/batch-accept-labels', async (req, res) => {
   try {
     await connectDB();
     const { orderIds } = req.body;
@@ -1270,7 +1270,7 @@ app.post('/api/orders/batch-accept-labels', async (req, res) => {
       success: true,
       count: ordersToProcess.length,
       message: `Successfully accepted ${ordersToProcess.length} orders and dispatched all shipping labels to your email!`,
-      batchLabelViewUrl: `${baseUrl}/api/orders/batch-labels-view`,
+      batchLabelViewUrl: `${baseUrl}/api/batch-labels-view`,
       processedOrderIds: ids
     });
   } catch (err) {
@@ -1282,7 +1282,7 @@ app.post('/api/orders/batch-accept-labels', async (req, res) => {
 // -----------------------------------------------------------------------------
 // Multi-Page Printable Batch Shipping Labels View (Print All in 1-Click)
 // -----------------------------------------------------------------------------
-app.get('/api/orders/batch-labels-view', async (req, res) => {
+app.get('/api/batch-labels-view', async (req, res) => {
   try {
     await connectDB();
     const orders = await Order.find({
