@@ -1436,6 +1436,44 @@ app.post('/api/admin/chat-reply', verifyToken, async (req, res) => {
 
 
 // Global Error Handler
+// -----------------------------------------------------------------------------
+// Google Sheet Pending Orders Sync API (Auto-fetched by Sheet on 1-Min Trigger)
+// -----------------------------------------------------------------------------
+app.get('/api/orders/pending-sync', async (req, res) => {
+  try {
+    await connectDB();
+    const token = req.query.token;
+    if (token !== 'NyaraLuxeSync2026') {
+      return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    const pendingOrders = await Order.find({ sheetSyncStatus: { $ne: 'SYNCED' } }).limit(50);
+    res.json(pendingOrders);
+  } catch (err) {
+    console.error('Error fetching pending orders:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/orders/mark-synced', async (req, res) => {
+  try {
+    await connectDB();
+    const { token, orderIds } = req.body;
+    if (token !== 'NyaraLuxeSync2026') {
+      return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      await Order.updateMany(
+        { orderId: { $in: orderIds } },
+        { $set: { sheetSyncStatus: 'SYNCED' } }
+      );
+    }
+    res.json({ success: true, count: orderIds ? orderIds.length : 0 });
+  } catch (err) {
+    console.error('Error marking orders synced:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message || "Something went wrong!", details: err.toString() });
