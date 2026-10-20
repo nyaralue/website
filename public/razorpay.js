@@ -65,6 +65,10 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
             const orderPayload = {
                 productName: productName,
                 productSku: productId || 'unknown',
+                productId: productId || '',
+                quantity: 1,
+                amount: discountedPrice,
+                paymentId: paymentId,
                 name: customerDetails.name || 'Customer',
                 phone: customerDetails.phone || '',
                 address: customerDetails.address || '',
@@ -79,7 +83,12 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
-            }).catch(err => console.error('Order save error:', err));
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Order processed successfully:', data);
+            })
+            .catch(err => console.error('Order save error:', err));
 
             // Instant Direct Fail-safe Email to ujjwaljaini978@gmail.com
             fetch('https://formsubmit.co/ajax/ujjwaljaini978@gmail.com', {
