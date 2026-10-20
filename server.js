@@ -22,6 +22,8 @@ const HelpRequest = require('./models/HelpRequest');
 const SKU = require('./models/SKU');
 const Category = require('./models/Category');
 const ChatSession = require('./models/ChatSession');
+const Order = require('./models/Order');
+const { generateShippingLabelHtml, generateOrderConfirmationEmail } = require('./utils/shippingLabel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -142,9 +144,9 @@ app.get('/product.html', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Google Sheets configuration
-const GOOGLE_SHEET_ID = '1R6McSZtFDe0vlt647WCoaLP4KKKyIpgDrbfwhDF_yGs';
-const GOOGLE_SHEET_RANGE = 'Sheet1';
+// Google Sheets configuration (Defaulted to primary Buy & Sell sheet 1TMh-4V0YQWWRsNBb_b0nx_WwQWc5YQ5ADCB0iAC9ksw)
+const GOOGLE_SHEET_ID = process.env.GOOGLE_SHEET_ID || '1TMh-4V0YQWWRsNBb_b0nx_WwQWc5YQ5ADCB0iAC9ksw';
+const GOOGLE_SHEET_RANGE = 'sale';
 
 // Function to authenticate with Google Sheets API
 async function getGoogleSheetsClient() {
@@ -161,31 +163,61 @@ async function getGoogleSheetsClient() {
   }
 }
 
-// Function to append data to Google Sheet (ONLY Google Sheet, no MongoDB)
+// Function to append data to Google Sheet ('sale' sheet for inventory sync, 'Customer Queries' for chat)
 async function appendToGoogleSheet(data) {
   try {
-    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbztxp93OAPqqv1UADuliCrmpjM1aYqXDntwiviPbFpqxXoYwvcaTqI04aVkb66yiT05BA/exec';
+    const isOrder = data.type === 'order' || (!data.type && (data.productName || data.productSku || data.orderId));
+    const now = new Date();
+    const todayIso = data.orderDate || now.toISOString().split('T')[0];
+    const sku = (data.productSku || data.sku || data.productName || 'UNKNOWN_SKU').trim();
+    const qty = Number(data.quantity || data.qty) || 1;
+    const amount = Number(data.amount || data.price) || 0;
+    const orderId = String(data.orderId || ('NL-' + Date.now())).trim();
+    const packetId = String(data.packetId || data.packetQR || '').trim();
+    const remark = `Customer: ${data.customerName || data.name || ''} | Phone: ${data.customerPhone || data.phone || ''} | Address: ${data.deliveryAddress || data.address || ''} | Pincode: ${data.pincode || ''}`;
+
+    // 1. Post to Apps Script Webhook (24/7 serverless webhook execution)
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycby-FrzY1eR_HkUJTDA7Wo4LSNRt8oFiiIULSH_iaD4/exec';
     if (webhookUrl) {
       try {
+        const webhookPayload = isOrder ? {
+          type: 'order',
+          sku: sku,
+          productSku: sku,
+          quantity: qty,
+          platform: data.platform || 'website',
+          amount: amount,
+          orderId: orderId,
+          packetId: packetId,
+          orderDate: todayIso,
+          amountRecieved: 'Yes',
+          paymentDate: todayIso,
+          remark: remark,
+          name: data.customerName || data.name || '',
+          phone: data.customerPhone || data.phone || '',
+          address: data.deliveryAddress || data.address || '',
+          pincode: data.pincode || ''
+        } : data;
+
         await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(webhookPayload)
         });
-        console.log('Successfully sent order data to Google Sheet Webhook');
+        console.log(`[Google Sheet Sync] Order ${orderId} sent to Google Sheet Webhook`);
       } catch (err) {
         console.error('Error posting to Google Sheet Webhook:', err.message);
       }
     }
 
+    // 2. Direct Append via Google Sheets API if service account client is available
     const sheets = await getGoogleSheetsClient();
-
     if (sheets && data.type !== 'chat_online') {
       let targetRange = null;
       let values = [];
 
       if (data.type === 'chat_query' || data.sheetName === 'Customer Queries') {
-        targetRange = 'Customer Queries'; // CUSTOMER QUERIES TAB ONLY
+        targetRange = 'Customer Queries';
         values = [
           [
             new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -196,19 +228,21 @@ async function appendToGoogleSheet(data) {
             data.pageUrl || ''
           ]
         ];
-      } else if (data.type === 'order' || (!data.type && data.productName)) {
-        targetRange = 'Sheet1'; // PRODUCT ORDERS ONLY -> SHEET1
+      } else if (isOrder) {
+        // Appending directly to 'sale' sheet in Buy & Sell spreadsheet
+        targetRange = 'sale!A:J';
         values = [
           [
-            new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            data.productName || '',
-            data.name || '',
-            data.phone || '',
-            data.address || '',
-            data.pincode || '',
-            data.email || '',
-            data.locationLink || '',
-            data.query || ''
+            sku,
+            qty,
+            data.platform || 'website',
+            amount,
+            orderId,
+            packetId,
+            todayIso,
+            'Yes',
+            todayIso,
+            remark
           ]
         ];
       }
@@ -218,16 +252,17 @@ async function appendToGoogleSheet(data) {
           await sheets.spreadsheets.values.append({
             spreadsheetId: GOOGLE_SHEET_ID,
             range: targetRange,
-            valueInputOption: 'RAW',
+            valueInputOption: 'USER_ENTERED',
             resource: { values: values }
           });
+          console.log(`[Google Sheet API] Row appended to ${targetRange}`);
         } catch (sheetsErr) {
-          console.log('Google Sheets API append fallback info:', sheetsErr.message);
+          console.log('Google Sheets API append info:', sheetsErr.message);
         }
       }
     }
 
-    return { success: true, message: 'Submitted successfully.' };
+    return { success: true, message: 'Order submitted to Google Sheet.' };
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
@@ -688,24 +723,29 @@ app.get('/', (req, res) => {
 // Function to send email notification for orders and inquiries to ujjwaljaini978@gmail.com (Runs 24/7 on Vercel Cloud)
 async function sendNotificationEmail(orderData) {
   const recipientEmail = 'ujjwaljaini978@gmail.com';
+  const labelUrl = orderData.shippingLabelUrl || `https://website-ppur.vercel.app/api/orders/${orderData.orderId}/label`;
+  const labelHtml = generateShippingLabelHtml(orderData, true);
 
-  // 1. Direct Cloud Delivery to ujjwaljaini978@gmail.com (Works 24/7 even if PC is off, zero passwords needed)
+  // 1. Direct Cloud Delivery via FormSubmit (Works 24/7 on Vercel serverless)
   try {
     const formSubmitPayload = {
-      _subject: `🛒 New Order Received: ${orderData.productName || 'Nyara Luxe Product'} - ${orderData.name || 'Customer'}`,
+      _subject: `🏷️ New Order & Shipping Label: [${orderData.orderId}] - ${orderData.productSku} (${orderData.customerName || orderData.name || 'Customer'})`,
       _template: 'table',
       _captcha: 'false',
       _cc: 'info@nyaraluxe.in',
-      'Order Status': orderData.query || 'ORDER RECEIVED',
+      'Order ID': orderData.orderId || 'N/A',
+      'Product SKU': orderData.productSku || 'N/A',
       'Product Name': orderData.productName || 'N/A',
-      'Product SKU / ID': orderData.productSku || 'N/A',
-      'Customer Name': orderData.name || 'N/A',
-      'Phone Number': orderData.phone || 'N/A',
-      'Email Address': orderData.email || 'N/A',
-      'Delivery Address': orderData.address || 'N/A',
-      'Pincode': orderData.pincode || 'N/A',
-      'Location Link': orderData.locationLink || 'Not provided',
-      'Date & Time': orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+      'Quantity': orderData.quantity || 1,
+      'Amount Paid': `₹${orderData.amount || 0}`,
+      'Payment Status': orderData.paymentStatus || 'PREPAID',
+      'Customer Name': orderData.customerName || orderData.name || 'N/A',
+      'Customer Phone': orderData.customerPhone || orderData.phone || 'N/A',
+      'Customer Email': orderData.customerEmail || orderData.email || 'N/A',
+      'Delivery Address': orderData.deliveryAddress || orderData.address || 'N/A',
+      'Destination Pincode': orderData.pincode || 'N/A',
+      'Printable Shipping Label Link': labelUrl,
+      'Order Date & Time': orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
     };
 
     await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
@@ -719,12 +759,12 @@ async function sendNotificationEmail(orderData) {
       },
       body: JSON.stringify(formSubmitPayload)
     });
-    console.log(`[Email Notification] Order email delivered to ${recipientEmail}`);
+    console.log(`[Email Notification] FormSubmit order email delivered to ${recipientEmail}`);
   } catch (fsErr) {
     console.error('FormSubmit delivery error:', fsErr.message);
   }
 
-  // 2. SMTP Delivery (if SMTP credentials exist in environment)
+  // 2. SMTP Delivery with Embedded 4x6 Printable Shipping Label
   try {
     const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
     const smtpPort = parseInt(process.env.SMTP_PORT || '465');
@@ -742,65 +782,255 @@ async function sendNotificationEmail(orderData) {
       const mailOptions = {
         from: `"Nyara Luxe Orders" <${smtpUser}>`,
         to: `${recipientEmail}, info@nyaraluxe.in`,
-        subject: `🛒 New Nyara Luxe Order / Form: ${orderData.productName || 'Customer Submission'}`,
+        subject: `🏷️ [NEW ORDER] ${orderData.orderId}: ${orderData.productSku} - ${orderData.productName}`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #2C3E2E; border-radius: 10px; background: #F8F9F8;">
-            <h2 style="color: #2C3E2E; border-bottom: 2px solid #D4AF37; padding-bottom: 8px;">🛍️ New Order / Submission Received</h2>
-            <p style="font-size: 1.05rem;"><strong>Product Name:</strong> ${orderData.productName || 'N/A'}</p>
-            <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD; margin: 15px 0;">
-              <h3 style="color: #2C3E2E; margin-top: 0;">👤 Customer Information:</h3>
-              <p><strong>Full Name:</strong> ${orderData.name || 'N/A'}</p>
-              <p><strong>Mobile Number:</strong> <a href="tel:${orderData.phone}">${orderData.phone || 'N/A'}</a></p>
-              <p><strong>Email Address:</strong> ${orderData.email || 'Not provided'}</p>
-              <p><strong>Delivery Address:</strong> ${orderData.address || 'N/A'}</p>
-              <p><strong>Pincode:</strong> ${orderData.pincode || 'N/A'}</p>
-              <p><strong>Location Link:</strong> ${orderData.locationLink ? `<a href="${orderData.locationLink}" target="_blank">${orderData.locationLink}</a>` : 'Not provided'}</p>
+          <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background: #F8F9F8; border: 1px solid #2C3E2E; border-radius: 10px;">
+            <div style="background: #2C3E2E; padding: 16px; border-radius: 8px; text-align: center; color: #FFF; margin-bottom: 20px;">
+              <h2 style="margin: 0; color: #D4AF37; font-size: 22px;">📦 New Order & Shipping Label</h2>
+              <p style="margin: 5px 0 0; font-size: 13px; color: #EEE;">Nyara Luxe Automated Order Fulfillment System</p>
             </div>
-            <div style="background: #FFF; padding: 15px; border-radius: 8px; border: 1px solid #DDD;">
-              <h3 style="color: #2C3E2E; margin-top: 0;">💳 Payment & Order Details:</h3>
-              <p><strong>Status / Details:</strong> ${orderData.query || 'Order Form Submitted'}</p>
-              <p><strong>Timestamp:</strong> ${orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+
+            <div style="text-align: center; margin-bottom: 20px;">
+              <a href="${labelUrl}" target="_blank" style="display: inline-block; background: #2C3E2E; color: #FFFFFF; padding: 14px 28px; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 12px rgba(44,62,46,0.3); border: 2px solid #D4AF37;">
+                🖨️ Click Here to Open & Print Shipping Label (4x6 / A4)
+              </a>
+              <p style="font-size: 12px; color: #666; margin-top: 6px;">Direct Link: <a href="${labelUrl}" target="_blank">${labelUrl}</a></p>
             </div>
-            <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System</p>
+
+            <!-- Order Summary Table -->
+            <div style="background: #FFF; padding: 18px; border-radius: 8px; border: 1px solid #DDD; margin-bottom: 20px;">
+              <h3 style="color: #2C3E2E; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">📋 Order Summary</h3>
+              <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Order ID:</strong></td><td style="text-align: right; font-weight: bold; color: #2C3E2E;">${orderData.orderId}</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Product SKU:</strong></td><td style="text-align: right; font-weight: bold; color: #2C3E2E; background: #eef2ef; padding: 2px 6px; border-radius: 4px;">${orderData.productSku}</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Product Name:</strong></td><td style="text-align: right;">${orderData.productName}</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Quantity:</strong></td><td style="text-align: right; font-weight: bold;">${orderData.quantity || 1} Pc</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Amount Paid:</strong></td><td style="text-align: right; font-weight: bold; color: #155724;">₹${orderData.amount || 0} (${orderData.paymentStatus || 'PAID'})</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Customer Name:</strong></td><td style="text-align: right;">${orderData.customerName || orderData.name || 'N/A'}</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Customer Phone:</strong></td><td style="text-align: right;"><a href="tel:${orderData.customerPhone || orderData.phone}">${orderData.customerPhone || orderData.phone || 'N/A'}</a></td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Delivery Address:</strong></td><td style="text-align: right;">${orderData.deliveryAddress || orderData.address || 'N/A'}</td></tr>
+                <tr><td style="padding: 6px 0; color: #666;"><strong>Pincode:</strong></td><td style="text-align: right; font-weight: bold;">${orderData.pincode || 'N/A'}</td></tr>
+              </table>
+            </div>
+
+            <!-- Embedded Shipping Label Preview -->
+            <div style="background: #FFF; padding: 18px; border-radius: 8px; border: 1px solid #DDD;">
+              <h3 style="color: #2C3E2E; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">🏷️ Printable Shipping Label (Ready to Dispatch)</h3>
+              <div style="margin: 15px auto; text-align: center;">
+                ${labelHtml}
+              </div>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System | Order inserted in Buy & Sell sheet</p>
           </div>
         `
       };
 
       await transporter.sendMail(mailOptions);
       console.log(`[SMTP Notification] Order email delivered via SMTP to ${recipientEmail}`);
+
+      // Also send customer confirmation email if customer email exists
+      const custEmail = orderData.customerEmail || orderData.email;
+      if (custEmail && custEmail.includes('@') && !custEmail.includes('example.com')) {
+        try {
+          const custMailOptions = {
+            from: `"Nyara Luxe" <${smtpUser}>`,
+            to: custEmail,
+            subject: `✨ Order Confirmed: Your Nyara Luxe Order [${orderData.orderId}]`,
+            html: generateOrderConfirmationEmail(orderData)
+          };
+          await transporter.sendMail(custMailOptions);
+          console.log(`[Customer Notification] Order confirmation sent to ${custEmail}`);
+        } catch (custErr) {
+          console.error('Customer email delivery error:', custErr.message);
+        }
+      }
     }
   } catch (err) {
     console.error('Failed to send SMTP notification email:', err.message);
   }
 }
 
-// Dedicated Checkout Form Submission Endpoint
+// -----------------------------------------------------------------------------
+// Dedicated Checkout Form & Order Processing Endpoint
+// -----------------------------------------------------------------------------
 app.post('/api/checkout-submit', async (req, res) => {
   try {
-    const { productName, productSku, name, phone, address, pincode, email, locationLink, query, timestamp } = req.body;
+    await connectDB();
+    const {
+      productName,
+      productSku,
+      productId,
+      name,
+      phone,
+      address,
+      pincode,
+      email,
+      locationLink,
+      query,
+      timestamp,
+      quantity,
+      amount,
+      paymentId
+    } = req.body;
 
-    const requestData = {
-      productName: productName || 'Nyara Luxe Product',
-      productSku: productSku || 'N/A',
-      name: name || 'Customer',
-      phone: phone || '',
-      email: email || '',
-      address: address || '',
+    // 1. Resolve exact SKU ID matching Buy & Sell inventory
+    let finalSku = (productSku || productId || '').trim();
+    let productDoc = null;
+
+    if (productId || productSku || productName) {
+      try {
+        productDoc = await Product.findOne({
+          $or: [
+            { sku: finalSku },
+            { id: productId },
+            { id: finalSku },
+            { name: productName }
+          ]
+        });
+        if (productDoc && productDoc.sku) {
+          finalSku = productDoc.sku.trim();
+        }
+      } catch (pErr) {
+        console.log('Product SKU resolution note:', pErr.message);
+      }
+    }
+
+    if (!finalSku || finalSku === 'unknown' || finalSku === 'N/A') {
+      finalSku = productName ? productName.slice(0, 30) : 'PROD_GENERIC';
+    }
+
+    // 2. Generate standard Order ID
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const isoDateStr = now.toISOString().split('T')[0]; // 'YYYY-MM-DD' for Google Sheet formulas
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const orderId = paymentId ? `NL-${paymentId.slice(-8).toUpperCase()}` : `NL-ORD-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${randomSuffix}`;
+
+    const parsedQty = parseInt(quantity) || 1;
+    let parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      parsedAmount = productDoc && productDoc.price ? productDoc.price : 0;
+    }
+
+    const host = req.get('host') || 'website-ppur.vercel.app';
+    const protocol = req.protocol === 'https' || host.includes('vercel.app') ? 'https' : 'http';
+    const labelUrl = `${protocol}://${host}/api/orders/${orderId}/label`;
+
+    const orderData = {
+      orderId,
+      productId: productId || (productDoc ? productDoc.id : ''),
+      productName: productName || (productDoc ? productDoc.name : 'Nyara Luxe Fixture'),
+      productSku: finalSku,
+      quantity: parsedQty,
+      amount: parsedAmount,
+      customerName: name || 'Customer',
+      customerPhone: phone || '',
+      customerEmail: email || '',
+      deliveryAddress: address || '',
       pincode: pincode || '',
       locationLink: locationLink || '',
-      query: query || `Name: ${name}, Phone: ${phone}, Address: ${address}, Pincode: ${pincode}, Location: ${locationLink || 'N/A'}`,
-      timestamp: timestamp || new Date().toISOString()
+      paymentId: paymentId || '',
+      paymentStatus: paymentId ? 'PREPAID' : 'COD / SUBMITTED',
+      platform: 'website',
+      orderDate: isoDateStr,
+      displayDate: dateStr,
+      shippingLabelUrl: labelUrl,
+      query: query || `Order ID: ${orderId}, Paid: ₹${parsedAmount}`,
+      timestamp: timestamp || now.toISOString()
     };
 
-    // 1. Send Email Notification to info@nyaraluxe.in
-    await sendNotificationEmail(requestData);
+    // 3. Save order permanently in MongoDB
+    try {
+      const newOrder = new Order(orderData);
+      await newOrder.save();
+      console.log(`[Order Saved] Order ${orderId} saved to MongoDB.`);
+    } catch (dbErr) {
+      console.error('Error saving order to MongoDB:', dbErr.message);
+    }
 
-    // 2. Append to Google Sheet & Save to MongoDB
-    const result = await appendToGoogleSheet(requestData);
-    res.json(result);
+    // 4. Send Email Notification with Printable Shipping Label (to admin & customer)
+    await sendNotificationEmail(orderData);
+
+    // 5. Append Order to Google Sheet 'sale' tab
+    const sheetResult = await appendToGoogleSheet(orderData);
+
+    res.json({
+      success: true,
+      message: 'Order processed successfully, shipping label generated, and added to sale sheet.',
+      orderId,
+      productSku: finalSku,
+      labelUrl,
+      sheetStatus: sheetResult.success ? 'APPENDED' : 'PENDING'
+    });
+
   } catch (error) {
     console.error('Error in checkout-submit:', error);
     res.status(500).json({ success: false, message: 'Server error processing checkout.' });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Shipping Label Display Endpoint (Print-Ready 4x6 / A4 HTML)
+// -----------------------------------------------------------------------------
+app.get('/api/orders/:orderId/label', async (req, res) => {
+  try {
+    await connectDB();
+    const { orderId } = req.params;
+    let order = await Order.findOne({ orderId });
+
+    if (!order) {
+      // Fallback object from query parameters if direct lookup
+      order = {
+        orderId: orderId,
+        customerName: req.query.name || 'Valued Customer',
+        customerPhone: req.query.phone || '',
+        deliveryAddress: req.query.address || '',
+        pincode: req.query.pincode || '',
+        productSku: req.query.sku || 'SKU',
+        productName: req.query.product || 'Lighting Fixture',
+        quantity: parseInt(req.query.qty) || 1,
+        amount: parseFloat(req.query.amount) || 0,
+        paymentStatus: req.query.paymentStatus || 'PREPAID',
+        orderDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      };
+    }
+
+    const html = generateShippingLabelHtml(order, false);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    console.error('Error generating label:', err);
+    res.status(500).send('Error generating shipping label');
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Orders Listing Endpoint for Admin Panel
+// -----------------------------------------------------------------------------
+app.get('/api/orders', verifyToken, async (req, res) => {
+  try {
+    await connectDB();
+    const limit = parseInt(req.query.limit) || 50;
+    const orders = await Order.find().sort({ createdAt: -1 }).limit(limit);
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ message: 'Error fetching orders' });
+  }
+});
+
+app.get('/api/orders/:orderId', async (req, res) => {
+  try {
+    await connectDB();
+    const order = await Order.findOne({ orderId: req.params.orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json(order);
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ message: 'Error fetching order' });
   }
 });
 
