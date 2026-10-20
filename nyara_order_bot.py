@@ -1,11 +1,11 @@
 """
 =============================================================================
-NYARA LUXE - AUTOMATED ORDER ENGINE (FLIPKART, MEESHO, AMAZON & STORE)
+NYARA LUXE - 24/7 CLOUD AUTOMATED ORDER & RETURN ENGINE
 =============================================================================
-Monitors incoming order notification emails in info@nyaraluxe.in,
-extracts order details, syncs with MongoDB, triggers rich email notifications
-with real product photos & action buttons ('Accept' / 'Accept & Generate Label'),
-and enters every order into the Google Sheet 'sale' tab with remark 'automated'.
+Monitors incoming order and return notification emails in info@nyaraluxe.in
+(Flipkart, Meesho, Amazon & Store), extracts order/return details,
+syncs with MongoDB, dispatches rich email alerts with Cloudinary product photos
+& action buttons, and queues records for Google Sheet 'sale' & 'return' tabs.
 =============================================================================
 """
 
@@ -20,12 +20,12 @@ import sys
 from datetime import datetime
 import requests
 
-# Configuration
-IMAP_SERVER = "imap.hostinger.com"
-EMAIL_USER = "info@nyaraluxe.in"
-EMAIL_PASS = "NyaraLuxe@978"
-API_ENDPOINT = "https://website-ppur.vercel.app/api/orders/marketplace-sync"
-POLL_INTERVAL_SECONDS = 30  # Poll every 30 seconds
+# Configuration with Environment Variable Fallbacks (for GitHub Actions Cloud Runner)
+IMAP_SERVER = os.environ.get("IMAP_SERVER", "imap.hostinger.com")
+EMAIL_USER = os.environ.get("EMAIL_USER", "info@nyaraluxe.in")
+EMAIL_PASS = os.environ.get("EMAIL_PASS", "NyaraLuxe@978")
+API_ENDPOINT = os.environ.get("API_ENDPOINT", "https://website-ppur.vercel.app/api/orders/marketplace-sync")
+POLL_INTERVAL_SECONDS = 30
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -79,6 +79,12 @@ def parse_order_from_email(msg):
     phone = ""
     address = "India"
     pincode = ""
+    order_type = "sale"
+
+    # Check for Return / RTO keywords
+    is_return = any(kw in combined_text.lower() for kw in ['return notification', 'rto shipment', 'refund initiated', 'undelivered return', 'return created', 'customer returned'])
+    if is_return:
+        order_type = "return"
 
     # 1. FLIPKART
     if "flipkart" in from_addr or "flipkart" in subject.lower():
@@ -91,7 +97,7 @@ def parse_order_from_email(msg):
         if m_sku:
             sku = m_sku.group(1)
         else:
-            m_gen = re.search(r'\b(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)\b', combined_text, re.IGNORECASE)
+            m_gen = re.search(r'(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)', combined_text, re.IGNORECASE)
             if m_gen:
                 sku = m_gen.group(1)
 
@@ -102,7 +108,7 @@ def parse_order_from_email(msg):
             except:
                 pass
 
-        m_pin = re.search(r'\b([1-9][0-9]{5})\b', combined_text)
+        m_pin = re.search(r'([1-9][0-9]{5})', combined_text)
         if m_pin:
             pincode = m_pin.group(1)
 
@@ -113,7 +119,7 @@ def parse_order_from_email(msg):
         if m_oid:
             order_id = m_oid.group(1)
         else:
-            m_digits = re.search(r'\b(\d{18,20}(?:_\d+)?)\b', combined_text)
+            m_digits = re.search(r'(\d{18,20}(?:_\d+)?)', combined_text)
             if m_digits:
                 order_id = m_digits.group(1)
 
@@ -121,7 +127,7 @@ def parse_order_from_email(msg):
         if m_sku:
             sku = m_sku.group(1)
         else:
-            m_gen = re.search(r'\b(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)\b', combined_text, re.IGNORECASE)
+            m_gen = re.search(r'(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)', combined_text, re.IGNORECASE)
             if m_gen:
                 sku = m_gen.group(1)
 
@@ -132,7 +138,7 @@ def parse_order_from_email(msg):
             except:
                 pass
 
-        m_pin = re.search(r'\b([1-9][0-9]{5})\b', combined_text)
+        m_pin = re.search(r'([1-9][0-9]{5})', combined_text)
         if m_pin:
             pincode = m_pin.group(1)
 
@@ -147,13 +153,14 @@ def parse_order_from_email(msg):
         if m_sku:
             sku = m_sku.group(1)
         else:
-            m_gen = re.search(r'\b(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)\b', combined_text, re.IGNORECASE)
+            m_gen = re.search(r'(WL_\d{3}(?:_\d+)?|GL_\d{3}[A-Za-z0-9_]*|CC_\d{3}[A-Za-z0-9_]*|CHN_\d{3}[A-Za-z0-9_]*)', combined_text, re.IGNORECASE)
             if m_gen:
                 sku = m_gen.group(1)
 
     if platform and (order_id or sku):
         return {
             "platform": platform,
+            "orderType": order_type,
             "orderId": order_id or f"{platform.upper()}-{int(time.time())}",
             "sku": sku or "UNKNOWN_SKU",
             "quantity": qty,
@@ -163,6 +170,7 @@ def parse_order_from_email(msg):
             "deliveryAddress": address,
             "pincode": pincode,
             "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "returnDate": datetime.now().strftime("%Y-%m-%d") if order_type == 'return' else "",
             "remark": "automated"
         }
 
@@ -174,19 +182,19 @@ def check_and_process_orders(max_emails=10):
         mail.login(EMAIL_USER, EMAIL_PASS)
         mail.select("INBOX")
 
-        # Search for unseen order notification emails
+        # Search for unseen order / return notification emails
         status, messages = mail.search(None, '(UNSEEN)')
         msg_ids = messages[0].split()
 
         if not msg_ids:
-            # log("No new unseen order emails.")
+            log("No new unseen order or return emails. All caught up!")
             mail.logout()
-            return
+            return 0
 
-        # Take the most recent unseen emails up to max_emails to avoid flood
         target_ids = msg_ids[-max_emails:]
         log(f"Detected {len(msg_ids)} unseen email(s). Processing latest {len(target_ids)}...")
 
+        processed_count = 0
         for mid in target_ids:
             try:
                 status, data = mail.fetch(mid, '(RFC822)')
@@ -195,33 +203,36 @@ def check_and_process_orders(max_emails=10):
 
                 order_info = parse_order_from_email(msg)
                 if order_info:
-                    log(f"🔔 NEW ORDER FOUND: [{order_info['platform'].upper()}] Order ID: {order_info['orderId']} | SKU: {order_info['sku']}")
+                    item_type = order_info.get('orderType', 'sale').upper()
+                    log(f"🔔 NEW {item_type} DETECTED: [{order_info['platform'].upper()}] ID: {order_info['orderId']} | SKU: {order_info['sku']}")
                     
                     # Dispatch to Nyara Luxe Backend
                     res = requests.post(API_ENDPOINT, json=order_info, timeout=20)
                     if res.status_code == 200:
-                        log(f"✅ Synced successfully: {res.json().get('message')}")
-                        log(f"🏷️ Label Ready: {res.json().get('labelUrl')}")
+                        log(f"✅ Synced: {res.json().get('message')}")
+                        processed_count += 1
                     else:
-                        log(f"⚠️ API Response {res.status_code}: {res.text[:200]}")
+                        log(f"⚠️ API Response {res.status_code}: {res.text[:150]}")
 
-                # Mark email as read / seen so it does not re-process
-                mail.store(mid, '+FLAGS', '\\Seen')
+                # Mark email as read / seen so it never duplicates
+                mail.store(mid, '+FLAGS', '\Seen')
 
             except Exception as parse_err:
                 mid_str = mid.decode() if isinstance(mid, bytes) else str(mid)
                 log(f"Error parsing email ID {mid_str}: {parse_err}")
 
         mail.logout()
+        return processed_count
 
     except Exception as imap_err:
         log(f"IMAP Error: {imap_err}")
+        return 0
 
 def run_bot():
     log("="*65)
-    log("NYARA LUXE AUTOMATED ORDER BOT STARTED")
+    log("NYARA LUXE 24/7 CLOUD ORDER & RETURN ENGINE RUNNING")
     log(f"Monitoring IMAP: {EMAIL_USER} on {IMAP_SERVER}")
-    log(f"Sync API: {API_ENDPOINT}")
+    log(f"Sync Endpoint: {API_ENDPOINT}")
     log("="*65)
 
     while True:
@@ -235,7 +246,10 @@ def run_bot():
         time.sleep(POLL_INTERVAL_SECONDS)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--once":
-        check_and_process_orders()
+    if len(sys.argv) > 1 and sys.argv[1] in ["--once", "--cron"]:
+        log("Running single batch sync (--cron mode)...")
+        cnt = check_and_process_orders(max_emails=20)
+        log(f"Batch sync finished. {cnt} items processed.")
+        sys.exit(0)
     else:
         run_bot()
