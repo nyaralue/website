@@ -23,7 +23,7 @@ const SKU = require('./models/SKU');
 const Category = require('./models/Category');
 const ChatSession = require('./models/ChatSession');
 const Order = require('./models/Order');
-const { generateShippingLabelHtml, generateOrderConfirmationEmail } = require('./utils/shippingLabel');
+const { generateShippingLabelHtml, generateMarketplaceOrderEmail, generateOrderConfirmationEmail } = require('./utils/shippingLabel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -174,7 +174,7 @@ async function appendToGoogleSheet(data) {
     const amount = Number(data.amount || data.price) || 0;
     const orderId = String(data.orderId || ('NL-' + Date.now())).trim();
     const packetId = String(data.packetId || data.packetQR || '').trim();
-    const remark = `Customer: ${data.customerName || data.name || ''} | Phone: ${data.customerPhone || data.phone || ''} | Address: ${data.deliveryAddress || data.address || ''} | Pincode: ${data.pincode || ''}`;
+    const remark = data.remark || 'automated';
 
     // 1. Post to Apps Script Webhook (24/7 serverless webhook execution)
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycby-FrzY1eR_HkUJTDA7Wo4LSNRt8oFiiIULSH_iaD4/exec';
@@ -721,31 +721,34 @@ app.get('/', (req, res) => {
 });
 
 // Function to send email notification for orders and inquiries to ujjwaljaini978@gmail.com (Runs 24/7 on Vercel Cloud)
-async function sendNotificationEmail(orderData) {
+async function sendNotificationEmail(orderData, baseUrl = 'https://website-ppur.vercel.app') {
   const recipientEmail = 'ujjwaljaini978@gmail.com';
-  const labelUrl = orderData.shippingLabelUrl || `https://website-ppur.vercel.app/api/orders/${orderData.orderId}/label`;
-  const labelHtml = generateShippingLabelHtml(orderData, true);
+  const labelUrl = orderData.shippingLabelUrl || `${baseUrl}/api/orders/${orderData.orderId}/label`;
+  const richOrderHtml = generateMarketplaceOrderEmail(orderData, baseUrl);
 
-  // 1. Direct Cloud Delivery via FormSubmit (Works 24/7 on Vercel serverless)
+  // 1. Direct Cloud Delivery via FormSubmit (Fail-safe for serverless Vercel)
   try {
     const formSubmitPayload = {
-      _subject: `🏷️ New Order & Shipping Label: [${orderData.orderId}] - ${orderData.productSku} (${orderData.customerName || orderData.name || 'Customer'})`,
+      _subject: `📦 [${(orderData.platform || 'ORDER').toUpperCase()}] ${orderData.orderId}: ${orderData.productSku} - ${orderData.productName}`,
       _template: 'table',
       _captcha: 'false',
       _cc: 'info@nyaraluxe.in',
+      'Platform': (orderData.platform || 'Website').toUpperCase(),
       'Order ID': orderData.orderId || 'N/A',
       'Product SKU': orderData.productSku || 'N/A',
       'Product Name': orderData.productName || 'N/A',
+      'Product Image': orderData.imageUrl || 'N/A',
       'Quantity': orderData.quantity || 1,
-      'Amount Paid': `₹${orderData.amount || 0}`,
+      'Amount': `₹${orderData.amount || 0}`,
       'Payment Status': orderData.paymentStatus || 'PREPAID',
       'Customer Name': orderData.customerName || orderData.name || 'N/A',
       'Customer Phone': orderData.customerPhone || orderData.phone || 'N/A',
-      'Customer Email': orderData.customerEmail || orderData.email || 'N/A',
       'Delivery Address': orderData.deliveryAddress || orderData.address || 'N/A',
-      'Destination Pincode': orderData.pincode || 'N/A',
-      'Printable Shipping Label Link': labelUrl,
-      'Order Date & Time': orderData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+      'Pincode': orderData.pincode || 'N/A',
+      'Action Accept Order': `${baseUrl}/api/orders/action?orderId=${encodeURIComponent(orderData.orderId)}&action=accept`,
+      'Action Accept & Print Label': `${baseUrl}/api/orders/action?orderId=${encodeURIComponent(orderData.orderId)}&action=accept_label`,
+      'Printable Shipping Label': labelUrl,
+      'Sheet Remark': 'automated'
     };
 
     await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
@@ -764,7 +767,7 @@ async function sendNotificationEmail(orderData) {
     console.error('FormSubmit delivery error:', fsErr.message);
   }
 
-  // 2. SMTP Delivery with Embedded 4x6 Printable Shipping Label
+  // 2. SMTP Delivery with Product Photo & Interactive Accept / Label Buttons
   try {
     const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
     const smtpPort = parseInt(process.env.SMTP_PORT || '465');
@@ -779,55 +782,16 @@ async function sendNotificationEmail(orderData) {
         auth: { user: smtpUser, pass: smtpPass }
       });
 
+      const platUpper = String(orderData.platform || 'website').toUpperCase();
       const mailOptions = {
         from: `"Nyara Luxe Orders" <${smtpUser}>`,
         to: `${recipientEmail}, info@nyaraluxe.in`,
-        subject: `🏷️ [NEW ORDER] ${orderData.orderId}: ${orderData.productSku} - ${orderData.productName}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background: #F8F9F8; border: 1px solid #2C3E2E; border-radius: 10px;">
-            <div style="background: #2C3E2E; padding: 16px; border-radius: 8px; text-align: center; color: #FFF; margin-bottom: 20px;">
-              <h2 style="margin: 0; color: #D4AF37; font-size: 22px;">📦 New Order & Shipping Label</h2>
-              <p style="margin: 5px 0 0; font-size: 13px; color: #EEE;">Nyara Luxe Automated Order Fulfillment System</p>
-            </div>
-
-            <div style="text-align: center; margin-bottom: 20px;">
-              <a href="${labelUrl}" target="_blank" style="display: inline-block; background: #2C3E2E; color: #FFFFFF; padding: 14px 28px; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 12px rgba(44,62,46,0.3); border: 2px solid #D4AF37;">
-                🖨️ Click Here to Open & Print Shipping Label (4x6 / A4)
-              </a>
-              <p style="font-size: 12px; color: #666; margin-top: 6px;">Direct Link: <a href="${labelUrl}" target="_blank">${labelUrl}</a></p>
-            </div>
-
-            <!-- Order Summary Table -->
-            <div style="background: #FFF; padding: 18px; border-radius: 8px; border: 1px solid #DDD; margin-bottom: 20px;">
-              <h3 style="color: #2C3E2E; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">📋 Order Summary</h3>
-              <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Order ID:</strong></td><td style="text-align: right; font-weight: bold; color: #2C3E2E;">${orderData.orderId}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Product SKU:</strong></td><td style="text-align: right; font-weight: bold; color: #2C3E2E; background: #eef2ef; padding: 2px 6px; border-radius: 4px;">${orderData.productSku}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Product Name:</strong></td><td style="text-align: right;">${orderData.productName}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Quantity:</strong></td><td style="text-align: right; font-weight: bold;">${orderData.quantity || 1} Pc</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Amount Paid:</strong></td><td style="text-align: right; font-weight: bold; color: #155724;">₹${orderData.amount || 0} (${orderData.paymentStatus || 'PAID'})</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Customer Name:</strong></td><td style="text-align: right;">${orderData.customerName || orderData.name || 'N/A'}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Customer Phone:</strong></td><td style="text-align: right;"><a href="tel:${orderData.customerPhone || orderData.phone}">${orderData.customerPhone || orderData.phone || 'N/A'}</a></td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Delivery Address:</strong></td><td style="text-align: right;">${orderData.deliveryAddress || orderData.address || 'N/A'}</td></tr>
-                <tr><td style="padding: 6px 0; color: #666;"><strong>Pincode:</strong></td><td style="text-align: right; font-weight: bold;">${orderData.pincode || 'N/A'}</td></tr>
-              </table>
-            </div>
-
-            <!-- Embedded Shipping Label Preview -->
-            <div style="background: #FFF; padding: 18px; border-radius: 8px; border: 1px solid #DDD;">
-              <h3 style="color: #2C3E2E; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">🏷️ Printable Shipping Label (Ready to Dispatch)</h3>
-              <div style="margin: 15px auto; text-align: center;">
-                ${labelHtml}
-              </div>
-            </div>
-
-            <p style="font-size: 0.8rem; color: #777; margin-top: 20px; text-align: center;">Nyara Luxe Automated Notification System | Order inserted in Buy & Sell sheet</p>
-          </div>
-        `
+        subject: `🏷️ [${platUpper}] ${orderData.orderId}: ${orderData.productSku} (${orderData.customerName || orderData.name || 'Customer'})`,
+        html: richOrderHtml
       };
 
       await transporter.sendMail(mailOptions);
-      console.log(`[SMTP Notification] Order email delivered via SMTP to ${recipientEmail}`);
+      console.log(`[SMTP Notification] Rich order email with product photo delivered to ${recipientEmail}`);
 
       // Also send customer confirmation email if customer email exists
       const custEmail = orderData.customerEmail || orderData.email;
@@ -850,7 +814,6 @@ async function sendNotificationEmail(orderData) {
     console.error('Failed to send SMTP notification email:', err.message);
   }
 }
-
 // -----------------------------------------------------------------------------
 // Dedicated Checkout Form & Order Processing Endpoint
 // -----------------------------------------------------------------------------
@@ -967,6 +930,175 @@ app.post('/api/checkout-submit', async (req, res) => {
   } catch (error) {
     console.error('Error in checkout-submit:', error);
     res.status(500).json({ success: false, message: 'Server error processing checkout.' });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Interactive Email Action Handler (Accept / Accept & Generate Label)
+// -----------------------------------------------------------------------------
+app.get('/api/orders/action', async (req, res) => {
+  try {
+    await connectDB();
+    const { orderId, action } = req.query;
+
+    if (!orderId) {
+      return res.status(400).send('<h2>Error: Order ID is required</h2>');
+    }
+
+    const host = req.get('host') || 'website-ppur.vercel.app';
+    const protocol = req.protocol === 'https' || host.includes('vercel.app') ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+
+    let order = await Order.findOne({ orderId });
+
+    if (action === 'accept') {
+      if (order) {
+        order.paymentStatus = 'ACCEPTED';
+        await order.save();
+      }
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Order Accepted - ${orderId}</title>
+          <style>
+            body { font-family: -apple-system, sans-serif; background: #f4f6f8; text-align: center; padding: 50px 20px; color: #111; }
+            .card { max-width: 500px; margin: 0 auto; background: #fff; padding: 35px 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-top: 6px solid #2C3E2E; }
+            h2 { color: #2C3E2E; margin-top: 0; }
+            .badge { display: inline-block; background: #eef5ee; color: #2C3E2E; border: 1.5px solid #2C3E2E; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 16px; margin: 10px 0; }
+            .btn { display: inline-block; background: #2C3E2E; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 10px rgba(44,62,46,0.3); }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>✅ Order Accepted!</h2>
+            <div class="badge">Order ID: ${orderId}</div>
+            <p style="color: #555; line-height: 1.5; font-size: 15px;">
+              Order has been marked as <strong>ACCEPTED</strong> in the system.<br>
+              Sheet status registered with remark: <code>automated</code>.
+            </p>
+            <a href="${baseUrl}/api/orders/${orderId}/label" class="btn">🏷️ Generate & Print 4x6 Shipping Label</a>
+          </div>
+        </body>
+        </html>
+      `);
+    } else if (action === 'accept_label') {
+      if (order) {
+        order.paymentStatus = 'ACCEPTED_AND_LABELED';
+        await order.save();
+
+        // Dispatch shipping label email to Ujjwal ji
+        await sendNotificationEmail(order, baseUrl);
+      }
+
+      // Redirect immediately to ready-to-print 4x6 shipping label
+      return res.redirect(`/api/orders/${orderId}/label`);
+    }
+
+    res.status(400).send('Invalid action requested.');
+  } catch (err) {
+    console.error('Error handling order action:', err);
+    res.status(500).send('Server error processing action.');
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Marketplace Sync Endpoint (Flipkart, Meesho, Amazon, Webhook)
+// -----------------------------------------------------------------------------
+app.post('/api/orders/marketplace-sync', async (req, res) => {
+  try {
+    await connectDB();
+    const {
+      platform,
+      orderId,
+      sku,
+      productSku,
+      productName,
+      quantity,
+      amount,
+      customerName,
+      customerPhone,
+      deliveryAddress,
+      pincode
+    } = req.body;
+
+    const finalPlatform = String(platform || 'marketplace').toLowerCase();
+    const finalSku = String(sku || productSku || 'UNKNOWN_SKU').trim();
+
+    // Look up product image and details from MongoDB
+    let productDoc = await Product.findOne({
+      $or: [
+        { sku: finalSku },
+        { id: finalSku },
+        { name: productName }
+      ]
+    });
+
+    const imageUrl = productDoc && productDoc.media && productDoc.media.length > 0
+      ? productDoc.media[0]
+      : 'https://res.cloudinary.com/dgn1wdfdw/image/upload/v1775405892/nyara-luxe-uploads/mphweysnpgmavfe4rlvi.png';
+
+    const now = new Date();
+    const todayIso = now.toISOString().split('T')[0];
+    const finalOrderId = String(orderId || `${finalPlatform.toUpperCase()}-${Date.now()}`).trim();
+    const parsedQty = parseInt(quantity) || 1;
+    const parsedAmount = parseFloat(amount) || (productDoc ? productDoc.price : 0) || 0;
+
+    const host = req.get('host') || 'website-ppur.vercel.app';
+    const protocol = req.protocol === 'https' || host.includes('vercel.app') ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+    const labelUrl = `${baseUrl}/api/orders/${finalOrderId}/label`;
+
+    const orderData = {
+      orderId: finalOrderId,
+      platform: finalPlatform,
+      productId: productDoc ? productDoc.id : '',
+      productName: productName || (productDoc ? productDoc.name : 'Nyara Luxe Fixture'),
+      productSku: finalSku,
+      imageUrl: imageUrl,
+      quantity: parsedQty,
+      amount: parsedAmount,
+      customerName: customerName || 'Customer',
+      customerPhone: customerPhone || '',
+      deliveryAddress: deliveryAddress || '',
+      pincode: pincode || '',
+      orderDate: todayIso,
+      shippingLabelUrl: labelUrl,
+      paymentStatus: 'NEW',
+      remark: 'automated'
+    };
+
+    // 1. Save or update order in MongoDB
+    try {
+      await Order.findOneAndUpdate({ orderId: finalOrderId }, orderData, { upsert: true, new: true });
+      console.log(`[Marketplace Sync] Order ${finalOrderId} saved in MongoDB.`);
+    } catch (dbErr) {
+      console.error('Order save error in marketplace sync:', dbErr.message);
+    }
+
+    // 2. Append to Google Sheet 'sale' tab with 'automated' in Column J (last column)
+    const appendResult = await appendToGoogleSheet({
+      ...orderData,
+      type: 'order',
+      remark: 'automated'
+    });
+
+    // 3. Send rich email notification with product photo and action buttons
+    await sendNotificationEmail(orderData, baseUrl);
+
+    res.json({
+      success: true,
+      message: `Order ${finalOrderId} synced, inserted into sale sheet as automated, and email dispatched!`,
+      orderId: finalOrderId,
+      sku: finalSku,
+      labelUrl,
+      sheetStatus: appendResult.success ? 'APPENDED' : 'PENDING'
+    });
+
+  } catch (err) {
+    console.error('Error in marketplace-sync:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
