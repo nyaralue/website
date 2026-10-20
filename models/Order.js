@@ -21,7 +21,14 @@ const orderSchema = new mongoose.Schema({
   paymentId: { type: String, default: '' },
   paymentStatus: { type: String, default: 'PAID' },
   platform: { type: String, default: 'website' },
+  orderType: { type: String, default: 'sale' }, // 'sale' or 'return'
   orderDate: { type: String },
+  returnDate: { type: String, default: '' },
+  returnReason: { type: String, default: '' },
+  returnReceivedDate: { type: String, default: '' },
+  inventoryReceived: { type: String, default: 'yes' },
+  imageUrl: { type: String, default: '' },
+  remark: { type: String, default: 'automated' },
   sheetSyncStatus: { type: String, default: 'PENDING' },
   shippingLabelUrl: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
