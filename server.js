@@ -178,19 +178,32 @@ async function getGoogleSheetsClient() {
   }
 }
 
-// Function to append data to Google Sheet ('sale' sheet for inventory sync, 'Customer Queries' for chat)
+// Function to append data to Google Sheet ('website orders' for direct website orders, 'Customer Queries' for chat)
 async function appendToGoogleSheet(data) {
   let syncedToSheet = false;
   try {
     const isOrder = data.type === 'order' || (!data.type && (data.productName || data.productSku || data.orderId));
+    const platformLower = String(data.platform || 'website').toLowerCase();
+
+    // All automated e-commerce marketplace syncs (Amazon/Flipkart/Meesho) are disabled; only website orders sync.
+    if (isOrder && platformLower !== 'website') {
+      return {
+        success: false,
+        disabled: true,
+        syncedToSheet: false,
+        message: 'Automated marketplace Google Sheet sync is disabled. Only website orders sync.'
+      };
+    }
+
     const now = new Date();
     const todayIso = data.orderDate || now.toISOString().split('T')[0];
     const sku = (data.productSku || data.sku || data.productName || 'UNKNOWN_SKU').trim();
     const qty = Number(data.quantity || data.qty) || 1;
     const amount = Number(data.amount || data.price) || 0;
     const orderId = String(data.orderId || ('NL-' + Date.now())).trim();
-    const packetId = String(data.packetId || data.packetQR || '').trim();
+    const packetId = String(data.paymentId || data.packetId || data.packetQR || '').trim();
     const remark = data.remark || 'automated';
+    const labelUrl = data.shippingLabelUrl || `https://website-ppur.vercel.app/api/orders/${encodeURIComponent(orderId)}/label`;
 
     // 1. Post to Apps Script Webhook (24/7 serverless webhook execution)
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbw11hzvNJoPs3fy-G1Psm3xNiN8ZDGj6GK1icb10B73zNiHRYd_tRjcz7n2pLYtzWOG/exec';
@@ -198,21 +211,32 @@ async function appendToGoogleSheet(data) {
       try {
         const webhookPayload = isOrder ? {
           type: 'order',
+          sheetName: 'website orders',
           sku: sku,
           productSku: sku,
+          productName: data.productName || '',
           quantity: qty,
-          platform: data.platform || 'website',
+          platform: 'website',
           amount: amount,
           orderId: orderId,
+          paymentId: data.paymentId || '',
           packetId: packetId,
           orderDate: todayIso,
           amountRecieved: 'Yes',
           paymentDate: todayIso,
           remark: remark,
           name: data.customerName || data.name || '',
+          customerName: data.customerName || data.name || '',
           phone: data.customerPhone || data.phone || '',
+          customerPhone: data.customerPhone || data.phone || '',
+          email: data.customerEmail || data.email || '',
+          customerEmail: data.customerEmail || data.email || '',
           address: data.deliveryAddress || data.address || '',
-          pincode: data.pincode || ''
+          deliveryAddress: data.deliveryAddress || data.address || '',
+          pincode: data.pincode || '',
+          locationLink: data.locationLink || '',
+          paymentStatus: data.paymentStatus || 'PREPAID',
+          shippingLabelUrl: labelUrl
         } : data;
 
         const webhookRes = await fetch(webhookUrl, {
@@ -226,7 +250,7 @@ async function appendToGoogleSheet(data) {
           const webhookJson = await webhookRes.json();
           if (webhookJson && webhookJson.success) {
             syncedToSheet = true;
-            console.log(`[Google Sheet Sync] Order ${orderId} appended via Webhook`);
+            console.log(`[Google Sheet Sync] Website order ${orderId} appended via Webhook`);
           } else {
             console.error(`[Google Sheet Sync] Webhook returned failure for ${orderId}:`, webhookJson);
           }
@@ -257,20 +281,29 @@ async function appendToGoogleSheet(data) {
           ]
         ];
       } else if (isOrder) {
-        // Appending directly to 'sale' sheet in Buy & Sell spreadsheet
-        targetRange = 'sale!A:J';
+        // Appending directly to dedicated 'website orders' sheet in Buy & Sell spreadsheet
+        targetRange = 'website orders!A:S';
         values = [
           [
             sku,
             qty,
-            data.platform || 'website',
+            'website',
             amount,
             orderId,
             packetId,
             todayIso,
             'Yes',
             todayIso,
-            remark
+            remark,
+            data.productName || '',
+            data.customerName || data.name || '',
+            data.customerPhone || data.phone || '',
+            data.customerEmail || data.email || '',
+            data.deliveryAddress || data.address || '',
+            data.pincode || '',
+            data.locationLink || '',
+            data.paymentStatus || 'PREPAID',
+            labelUrl
           ]
         ];
       }
@@ -1097,102 +1130,14 @@ app.get('/api/orders/action', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// Marketplace Sync Endpoint (Flipkart, Meesho, Amazon, Webhook)
+// Marketplace Sync Endpoint (DISABLED - Only website orders are automated)
 // -----------------------------------------------------------------------------
 app.post('/api/orders/marketplace-sync', async (req, res) => {
-  try {
-    await connectDB();
-    const {
-      platform,
-      orderId,
-      sku,
-      productSku,
-      productName,
-      quantity,
-      amount,
-      customerName,
-      customerPhone,
-      deliveryAddress,
-      pincode
-    } = req.body;
-
-    const finalPlatform = String(platform || 'marketplace').toLowerCase();
-    const finalSku = String(sku || productSku || 'UNKNOWN_SKU').trim();
-
-    // Look up product image and details from MongoDB
-    let productDoc = await Product.findOne({
-      $or: [
-        { sku: finalSku },
-        { id: finalSku },
-        { name: productName }
-      ]
-    });
-
-    const imageUrl = productDoc && productDoc.media && productDoc.media.length > 0
-      ? productDoc.media[0]
-      : 'https://res.cloudinary.com/dgn1wdfdw/image/upload/v1775405892/nyara-luxe-uploads/mphweysnpgmavfe4rlvi.png';
-
-    const now = new Date();
-    const todayIso = now.toISOString().split('T')[0];
-    const finalOrderId = String(orderId || `${finalPlatform.toUpperCase()}-${Date.now()}`).trim();
-    const parsedQty = parseInt(quantity) || 1;
-    const parsedAmount = parseFloat(amount) || (productDoc ? productDoc.price : 0) || 0;
-
-    const host = req.get('host') || 'website-ppur.vercel.app';
-    const protocol = req.protocol === 'https' || host.includes('vercel.app') ? 'https' : 'http';
-    const baseUrl = `${protocol}://${host}`;
-    const labelUrl = `${baseUrl}/api/orders/${finalOrderId}/label`;
-
-    const orderData = {
-      orderId: finalOrderId,
-      platform: finalPlatform,
-      productId: productDoc ? productDoc.id : '',
-      productName: productName || (productDoc ? productDoc.name : 'Nyara Luxe Fixture'),
-      productSku: finalSku,
-      imageUrl: imageUrl,
-      quantity: parsedQty,
-      amount: parsedAmount,
-      customerName: customerName || 'Customer',
-      customerPhone: customerPhone || '',
-      deliveryAddress: deliveryAddress || '',
-      pincode: pincode || '',
-      orderDate: todayIso,
-      shippingLabelUrl: labelUrl,
-      paymentStatus: 'NEW',
-      remark: 'automated'
-    };
-
-    // 1. Save or update order in MongoDB
-    try {
-      await Order.findOneAndUpdate({ orderId: finalOrderId }, orderData, { upsert: true, new: true });
-      console.log(`[Marketplace Sync] Order ${finalOrderId} saved in MongoDB.`);
-    } catch (dbErr) {
-      console.error('Order save error in marketplace sync:', dbErr.message);
-    }
-
-    // 2. Append to Google Sheet 'sale' tab with 'automated' in Column J (last column)
-    const appendResult = await appendToGoogleSheet({
-      ...orderData,
-      type: 'order',
-      remark: 'automated'
-    });
-
-    // 3. Send rich email notification with product photo and action buttons
-    await sendNotificationEmail(orderData, baseUrl);
-
-    res.json({
-      success: true,
-      message: `Order ${finalOrderId} synced, inserted into sale sheet as automated, and email dispatched!`,
-      orderId: finalOrderId,
-      sku: finalSku,
-      labelUrl,
-      sheetStatus: appendResult.success ? 'APPENDED' : 'PENDING'
-    });
-
-  } catch (err) {
-    console.error('Error in marketplace-sync:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  return res.status(410).json({
+    success: false,
+    disabled: true,
+    message: 'Automated e-commerce marketplace sync (Flipkart, Meesho, Amazon) is disabled. Only website orders are active.'
+  });
 });
 
 // -----------------------------------------------------------------------------
@@ -1258,6 +1203,7 @@ app.get('/api/orders-summary', async (req, res) => {
     const todayIso = new Date().toISOString().split('T')[0];
     
     const pendingOrders = await Order.find({
+      platform: 'website',
       paymentStatus: { $ne: 'CANCELLED' }
     }).sort({ createdAt: -1 }).limit(30);
 
@@ -1302,10 +1248,11 @@ app.post('/api/batch-accept-labels', async (req, res) => {
     const { orderIds } = req.body;
 
     let filter = {
-      paymentStatus: { $in: ['NEW', 'PAID', 'PENDING', 'ACCEPTED'] }
+      platform: 'website',
+      paymentStatus: { $in: ['NEW', 'PAID', 'PREPAID', 'PENDING', 'ACCEPTED'] }
     };
     if (Array.isArray(orderIds) && orderIds.length > 0) {
-      filter = { orderId: { $in: orderIds } };
+      filter = { platform: 'website', orderId: { $in: orderIds } };
     }
 
     const ordersToProcess = await Order.find(filter).sort({ createdAt: -1 }).limit(25);
@@ -1379,6 +1326,7 @@ app.get('/api/batch-labels-view', async (req, res) => {
   try {
     await connectDB();
     const orders = await Order.find({
+      platform: 'website',
       paymentStatus: { $ne: 'CANCELLED' }
     }).sort({ createdAt: -1 }).limit(25);
 
@@ -1392,44 +1340,22 @@ app.get('/api/batch-labels-view', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// Pending Returns Sync Endpoint for Google Sheet 'return' Tab
+// Pending Returns Sync Endpoint (DISABLED - Marketplace returns automation disabled)
 // -----------------------------------------------------------------------------
 app.get('/api/pending-returns-sync', async (req, res) => {
-  try {
-    await connectDB();
-    const token = req.query.token;
-    if (token !== 'NyaraLuxeSync2026') {
-      return res.status(401).json({ error: 'Unauthorized sync token' });
-    }
-    const returns = await Order.find({
-      orderType: 'return',
-      sheetSyncStatus: { $ne: 'SYNCED' }
-    }).limit(50);
-    res.json(returns);
-  } catch (err) {
-    console.error('Error fetching pending returns:', err);
-    res.status(500).json({ error: err.message });
+  const token = req.query.token;
+  if (token !== 'NyaraLuxeSync2026') {
+    return res.status(401).json({ error: 'Unauthorized sync token' });
   }
+  return res.json([]);
 });
 
 app.post('/api/mark-returns-synced', async (req, res) => {
-  try {
-    await connectDB();
-    const { token, orderIds } = req.body;
-    if (token !== 'NyaraLuxeSync2026') {
-      return res.status(401).json({ error: 'Unauthorized sync token' });
-    }
-    if (Array.isArray(orderIds) && orderIds.length > 0) {
-      await Order.updateMany(
-        { orderId: { $in: orderIds }, orderType: 'return' },
-        { $set: { sheetSyncStatus: 'SYNCED' } }
-      );
-    }
-    res.json({ success: true, count: orderIds ? orderIds.length : 0 });
-  } catch (err) {
-    console.error('Error marking returns synced:', err);
-    res.status(500).json({ error: err.message });
+  const { token } = req.body || {};
+  if (token !== 'NyaraLuxeSync2026') {
+    return res.status(401).json({ error: 'Unauthorized sync token' });
   }
+  return res.json({ success: true, disabled: true, count: 0 });
 });
 
 app.get('/api/pending-orders-sync', async (req, res) => {
@@ -1439,7 +1365,10 @@ app.get('/api/pending-orders-sync', async (req, res) => {
     if (token !== 'NyaraLuxeSync2026') {
       return res.status(401).json({ error: 'Unauthorized sync token' });
     }
-    const pendingOrders = await Order.find({ sheetSyncStatus: { $ne: 'SYNCED' } }).limit(50);
+    const pendingOrders = await Order.find({
+      platform: 'website',
+      sheetSyncStatus: { $ne: 'SYNCED' }
+    }).sort({ createdAt: 1 }).limit(100);
     res.json(pendingOrders);
   } catch (err) {
     console.error('Error fetching pending orders:', err);
@@ -1479,6 +1408,7 @@ app.get('/api/orders-by-date-range', async (req, res) => {
     }
     const { startDate, endDate } = req.query;
     let query = {
+      platform: 'website',
       paymentStatus: { $ne: 'CANCELLED' },
       orderId: { $not: /^AMAZON-\d+$/ } // strictly omit synthetic test orders
     };
@@ -1504,9 +1434,17 @@ app.get('/api/orders-by-date-range', async (req, res) => {
         productName: o.productName,
         quantity: o.quantity || 1,
         amount: o.amount || 0,
+        paymentId: o.paymentId || '',
         packetId: o.packetId || '',
         orderDate: o.orderDate,
         customerName: o.customerName || '',
+        customerPhone: o.customerPhone || '',
+        customerEmail: o.customerEmail || '',
+        deliveryAddress: o.deliveryAddress || '',
+        pincode: o.pincode || '',
+        locationLink: o.locationLink || '',
+        paymentStatus: o.paymentStatus || 'PREPAID',
+        shippingLabelUrl: o.shippingLabelUrl || `https://website-ppur.vercel.app/api/orders/${o.orderId}/label`,
         sheetSyncStatus: o.sheetSyncStatus
       }))
     });

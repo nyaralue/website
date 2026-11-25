@@ -246,10 +246,5 @@ def run_bot():
         time.sleep(POLL_INTERVAL_SECONDS)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] in ["--once", "--cron"]:
-        log("Running single batch sync (--cron mode)...")
-        cnt = check_and_process_orders(max_emails=20)
-        log(f"Batch sync finished. {cnt} items processed.")
-        sys.exit(0)
-    else:
-        run_bot()
+    log("Automated e-commerce marketplace email sync (Flipkart/Meesho/Amazon) is DISABLED. Only direct website orders are active.")
+    sys.exit(0)
