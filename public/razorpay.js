@@ -82,6 +82,7 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
             fetch('/api/checkout-submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                keepalive: true,
                 body: JSON.stringify(orderPayload)
             })
             .then(res => res.json())
@@ -97,6 +98,7 @@ function payWithRazorpay(productName, mrpPrice, productId, customerDetails = {},
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
+                keepalive: true,
                 body: JSON.stringify({
                     _subject: `🎉 NEW ORDER RECEIVED: ${productName} - ₹${discountedPrice} (Nyara Luxe)`,
                     _template: 'table',

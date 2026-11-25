@@ -151,20 +151,36 @@ const GOOGLE_SHEET_RANGE = 'sale';
 // Function to authenticate with Google Sheets API
 async function getGoogleSheetsClient() {
   try {
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      });
+      const client = await auth.getClient();
+      return google.sheets({ version: 'v4', auth: client });
+    }
+    const keyPath = path.join(__dirname, 'config', 'service-account-key.json');
+    try {
+      await fs.access(keyPath);
+    } catch (_) {
+      return null;
+    }
     const auth = new google.auth.GoogleAuth({
-      keyFile: path.join(__dirname, 'config', 'service-account-key.json'),
+      keyFile: keyPath,
       scopes: ['https://www.googleapis.com/auth/spreadsheets']
     });
     const client = await auth.getClient();
     return google.sheets({ version: 'v4', auth: client });
   } catch (error) {
-    console.error('Error authenticating with Google Sheets API:', error);
+    console.error('Error authenticating with Google Sheets API:', error.message);
     return null;
   }
 }
 
 // Function to append data to Google Sheet ('sale' sheet for inventory sync, 'Customer Queries' for chat)
 async function appendToGoogleSheet(data) {
+  let syncedToSheet = false;
   try {
     const isOrder = data.type === 'order' || (!data.type && (data.productName || data.productSku || data.orderId));
     const now = new Date();
@@ -177,7 +193,7 @@ async function appendToGoogleSheet(data) {
     const remark = data.remark || 'automated';
 
     // 1. Post to Apps Script Webhook (24/7 serverless webhook execution)
-    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycby-FrzY1eR_HkUJTDA7Wo4LSNRt8oFiiIULSH_iaD4/exec';
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbw11hzvNJoPs3fy-G1Psm3xNiN8ZDGj6GK1icb10B73zNiHRYd_tRjcz7n2pLYtzWOG/exec';
     if (webhookUrl) {
       try {
         const webhookPayload = isOrder ? {
@@ -199,12 +215,24 @@ async function appendToGoogleSheet(data) {
           pincode: data.pincode || ''
         } : data;
 
-        await fetch(webhookUrl, {
+        const webhookRes = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(webhookPayload)
         });
-        console.log(`[Google Sheet Sync] Order ${orderId} sent to Google Sheet Webhook`);
+        const finalUrl = webhookRes.url || '';
+        const contentType = webhookRes.headers.get('content-type') || '';
+        if (webhookRes.ok && !finalUrl.includes('accounts.google.com') && contentType.includes('application/json')) {
+          const webhookJson = await webhookRes.json();
+          if (webhookJson && webhookJson.success) {
+            syncedToSheet = true;
+            console.log(`[Google Sheet Sync] Order ${orderId} appended via Webhook`);
+          } else {
+            console.error(`[Google Sheet Sync] Webhook returned failure for ${orderId}:`, webhookJson);
+          }
+        } else {
+          console.error(`[Google Sheet Sync] Webhook blocked/unauthorized (status=${webhookRes.status}, url=${finalUrl})`);
+        }
       } catch (err) {
         console.error('Error posting to Google Sheet Webhook:', err.message);
       }
@@ -255,6 +283,7 @@ async function appendToGoogleSheet(data) {
             valueInputOption: 'USER_ENTERED',
             resource: { values: values }
           });
+          syncedToSheet = true;
           console.log(`[Google Sheet API] Row appended to ${targetRange}`);
         } catch (sheetsErr) {
           console.log('Google Sheets API append info:', sheetsErr.message);
@@ -262,11 +291,17 @@ async function appendToGoogleSheet(data) {
       }
     }
 
-    return { success: true, message: 'Order submitted to Google Sheet.' };
+    return {
+      success: syncedToSheet,
+      syncedToSheet,
+      message: syncedToSheet
+        ? 'Order submitted to Google Sheet.'
+        : 'Google Sheet webhook/API unavailable; order remains PENDING for sheet sync.'
+    };
 
   } catch (error) {
     console.error('Error appending to Google Sheet:', error);
-    return { success: false, message: 'Error processing submission.' };
+    return { success: false, syncedToSheet: false, message: 'Error processing submission.' };
   }
 }
 
@@ -725,8 +760,57 @@ async function sendNotificationEmail(orderData, baseUrl = 'https://website-ppur.
   const recipientEmail = 'ujjwaljaini978@gmail.com';
   const labelUrl = orderData.shippingLabelUrl || `${baseUrl}/api/orders/${orderData.orderId}/label`;
   const richOrderHtml = generateMarketplaceOrderEmail(orderData, baseUrl);
+  let emailDelivered = false;
 
-  // 1. Direct Cloud Delivery via FormSubmit (Fail-safe for serverless Vercel)
+  // 1. Primary SMTP Delivery (Hostinger SMTP with Product Photo & Interactive Accept / Label Buttons)
+  try {
+    const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'info@nyaraluxe.in';
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || 'NyaraLuxe@978';
+
+    if (smtpUser && smtpPass) {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: { user: smtpUser, pass: smtpPass }
+      });
+
+      const platUpper = String(orderData.platform || 'website').toUpperCase();
+      const mailOptions = {
+        from: `"Nyara Luxe Orders" <${smtpUser}>`,
+        to: `${recipientEmail}, info@nyaraluxe.in`,
+        subject: `🏷️ [${platUpper}] ${orderData.orderId}: ${orderData.productSku} (${orderData.customerName || orderData.name || 'Customer'})`,
+        html: richOrderHtml
+      };
+
+      await transporter.sendMail(mailOptions);
+      emailDelivered = true;
+      console.log(`[SMTP Notification] Rich order email with product photo delivered to ${recipientEmail}`);
+
+      // Also send customer confirmation email if customer email exists
+      const custEmail = orderData.customerEmail || orderData.email;
+      if (custEmail && custEmail.includes('@') && !custEmail.includes('example.com')) {
+        try {
+          const custMailOptions = {
+            from: `"Nyara Luxe" <${smtpUser}>`,
+            to: custEmail,
+            subject: `✨ Order Confirmed: Your Nyara Luxe Order [${orderData.orderId}]`,
+            html: generateOrderConfirmationEmail(orderData)
+          };
+          await transporter.sendMail(custMailOptions);
+          console.log(`[Customer Notification] Order confirmation sent to ${custEmail}`);
+        } catch (custErr) {
+          console.error('Customer email delivery error:', custErr.message);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to send SMTP notification email:', err.message);
+  }
+
+  // 2. Backup Cloud Delivery via FormSubmit (Verified response check)
   try {
     const formSubmitPayload = {
       _subject: `📦 [${(orderData.platform || 'ORDER').toUpperCase()}] ${orderData.orderId}: ${orderData.productSku} - ${orderData.productName}`,
@@ -751,7 +835,7 @@ async function sendNotificationEmail(orderData, baseUrl = 'https://website-ppur.
       'Sheet Remark': 'automated'
     };
 
-    await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
+    const fsResp = await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -762,57 +846,51 @@ async function sendNotificationEmail(orderData, baseUrl = 'https://website-ppur.
       },
       body: JSON.stringify(formSubmitPayload)
     });
-    console.log(`[Email Notification] FormSubmit order email delivered to ${recipientEmail}`);
+    const fsText = await fsResp.text();
+    let fsOk = fsResp.ok;
+    try {
+      const fsJson = JSON.parse(fsText);
+      if (fsJson && (fsJson.success === false || fsJson.success === 'false')) {
+        fsOk = false;
+      }
+    } catch (_) {}
+    if (fsOk) {
+      emailDelivered = true;
+      console.log(`[Email Notification] FormSubmit order email delivered to ${recipientEmail}`);
+    } else {
+      console.error(`[Email Notification] FormSubmit rejected (${fsResp.status}): ${fsText.slice(0, 200)}`);
+    }
   } catch (fsErr) {
     console.error('FormSubmit delivery error:', fsErr.message);
   }
 
-  // 2. SMTP Delivery with Product Photo & Interactive Accept / Label Buttons
-  try {
-    const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
-    const smtpPort = parseInt(process.env.SMTP_PORT || '465');
-    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-    if (smtpUser && smtpPass) {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: true,
-        auth: { user: smtpUser, pass: smtpPass }
+  // 3. Optional Instant Telegram Push Alert (if TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID are configured)
+  if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+    try {
+      const tgText = [
+        `🛒 *NEW ${(orderData.platform || 'WEBSITE').toUpperCase()} ORDER*`,
+        `• *Order ID:* \`${orderData.orderId || 'N/A'}\``,
+        `• *SKU:* \`${orderData.productSku || 'N/A'}\` (Qty: ${orderData.quantity || 1})`,
+        `• *Amount:* ₹${orderData.amount || 0} (${orderData.paymentStatus || 'PREPAID'})`,
+        `• *Customer:* ${orderData.customerName || orderData.name || 'N/A'} (${orderData.customerPhone || orderData.phone || 'N/A'})`,
+        `• *Address:* ${orderData.deliveryAddress || orderData.address || 'N/A'} - ${orderData.pincode || ''}`,
+        `• *Label:* ${labelUrl}`
+      ].join('\n');
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: tgText,
+          parse_mode: 'Markdown'
+        })
       });
-
-      const platUpper = String(orderData.platform || 'website').toUpperCase();
-      const mailOptions = {
-        from: `"Nyara Luxe Orders" <${smtpUser}>`,
-        to: `${recipientEmail}, info@nyaraluxe.in`,
-        subject: `🏷️ [${platUpper}] ${orderData.orderId}: ${orderData.productSku} (${orderData.customerName || orderData.name || 'Customer'})`,
-        html: richOrderHtml
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log(`[SMTP Notification] Rich order email with product photo delivered to ${recipientEmail}`);
-
-      // Also send customer confirmation email if customer email exists
-      const custEmail = orderData.customerEmail || orderData.email;
-      if (custEmail && custEmail.includes('@') && !custEmail.includes('example.com')) {
-        try {
-          const custMailOptions = {
-            from: `"Nyara Luxe" <${smtpUser}>`,
-            to: custEmail,
-            subject: `✨ Order Confirmed: Your Nyara Luxe Order [${orderData.orderId}]`,
-            html: generateOrderConfirmationEmail(orderData)
-          };
-          await transporter.sendMail(custMailOptions);
-          console.log(`[Customer Notification] Order confirmation sent to ${custEmail}`);
-        } catch (custErr) {
-          console.error('Customer email delivery error:', custErr.message);
-        }
-      }
+    } catch (tgErr) {
+      console.error('Telegram alert error:', tgErr.message);
     }
-  } catch (err) {
-    console.error('Failed to send SMTP notification email:', err.message);
   }
+
+  return emailDelivered;
 }
 // -----------------------------------------------------------------------------
 // Dedicated Checkout Form & Order Processing Endpoint
@@ -877,14 +955,20 @@ app.post('/api/checkout-submit', async (req, res) => {
     }
 
     const host = req.get('host') || 'website-ppur.vercel.app';
-    const protocol = req.protocol === 'https' || host.includes('vercel.app') ? 'https' : 'http';
-    const labelUrl = `${protocol}://${host}/api/orders/${orderId}/label`;
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = (forwardedProto === 'https' || req.protocol === 'https' || host.includes('vercel.app')) ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+    const labelUrl = `${baseUrl}/api/orders/${orderId}/label`;
+    const imageUrl = (productDoc && Array.isArray(productDoc.media) && productDoc.media.length > 0)
+      ? productDoc.media[0]
+      : 'https://res.cloudinary.com/dgn1wdfdw/image/upload/v1775405892/nyara-luxe-uploads/mphweysnpgmavfe4rlvi.png';
 
     const orderData = {
       orderId,
       productId: productId || (productDoc ? productDoc.id : ''),
       productName: productName || (productDoc ? productDoc.name : 'Nyara Luxe Fixture'),
       productSku: finalSku,
+      imageUrl,
       quantity: parsedQty,
       amount: parsedAmount,
       customerName: name || 'Customer',
@@ -899,32 +983,41 @@ app.post('/api/checkout-submit', async (req, res) => {
       orderDate: isoDateStr,
       displayDate: dateStr,
       shippingLabelUrl: labelUrl,
+      remark: 'automated',
+      sheetSyncStatus: 'PENDING',
       query: query || `Order ID: ${orderId}, Paid: ₹${parsedAmount}`,
       timestamp: timestamp || now.toISOString()
     };
 
-    // 3. Save order permanently in MongoDB
+    // 3. Save order permanently in MongoDB (upsert to stay idempotent)
     try {
-      const newOrder = new Order(orderData);
-      await newOrder.save();
+      await Order.findOneAndUpdate({ orderId }, orderData, { upsert: true, new: true });
       console.log(`[Order Saved] Order ${orderId} saved to MongoDB.`);
     } catch (dbErr) {
       console.error('Error saving order to MongoDB:', dbErr.message);
     }
 
     // 4. Send Email Notification with Printable Shipping Label (to admin & customer)
-    await sendNotificationEmail(orderData);
+    const emailDelivered = await sendNotificationEmail(orderData, baseUrl);
 
     // 5. Append Order to Google Sheet 'sale' tab
     const sheetResult = await appendToGoogleSheet(orderData);
+    if (sheetResult.syncedToSheet) {
+      try {
+        await Order.updateOne({ orderId }, { $set: { sheetSyncStatus: 'SYNCED' } });
+      } catch (syncErr) {
+        console.error('Error updating sheetSyncStatus:', syncErr.message);
+      }
+    }
 
     res.json({
       success: true,
-      message: 'Order processed successfully, shipping label generated, and added to sale sheet.',
+      message: 'Order processed successfully and shipping label generated.',
       orderId,
       productSku: finalSku,
       labelUrl,
-      sheetStatus: sheetResult.success ? 'APPENDED' : 'PENDING'
+      emailStatus: emailDelivered ? 'SENT' : 'FAILED',
+      sheetStatus: sheetResult.syncedToSheet ? 'SYNCED' : 'PENDING'
     });
 
   } catch (error) {
@@ -1360,6 +1453,19 @@ app.post('/api/mark-orders-synced', async (req, res) => {
     const { token, orderIds } = req.body;
     if (token !== 'NyaraLuxeSync2026') {
       return res.status(401).json({ error: 'Unauthorized sync token' });
+    }
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      await Order.updateMany(
+        { orderId: { $in: orderIds } },
+        { $set: { sheetSyncStatus: 'SYNCED' } }
+      );
+    }
+    res.json({ success: true, count: orderIds ? orderIds.length : 0 });
+  } catch (err) {
+    console.error('Error marking orders synced:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // -----------------------------------------------------------------------------
 // Orders by Date Range Endpoint (For Date-Range Google Sheet Sync & Deduplication)
@@ -1407,21 +1513,6 @@ app.get('/api/orders-by-date-range', async (req, res) => {
   } catch (err) {
     console.error('Error in orders-by-date-range:', err);
     res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-
-    }
-    if (Array.isArray(orderIds) && orderIds.length > 0) {
-      await Order.updateMany(
-        { orderId: { $in: orderIds } },
-        { $set: { sheetSyncStatus: 'SYNCED' } }
-      );
-    }
-    res.json({ success: true, count: orderIds ? orderIds.length : 0 });
-  } catch (err) {
-    console.error('Error marking orders synced:', err);
-    res.status(500).json({ error: err.message });
   }
 });
 
